@@ -7,6 +7,8 @@
 script = ExtResource("1_6v2f4")
 item_id = &"chest"
 display_name = "Сундук"
+name_few = "сундука"
+name_many = "сундуков"
 unit_weight_kg = 10.0
 max_stack = 1
 icon = ExtResource("1_65cip")

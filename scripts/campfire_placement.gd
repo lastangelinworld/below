@@ -10,6 +10,11 @@ const INVALID_CELL: Vector2i = Vector2i(
 	2147483647
 )
 
+## Текстура-основание костра для полупрозрачного превью.
+const PREVIEW_BASE_TEXTURE := preload(
+	"res://assets/campfire/0.png"
+)
+
 
 @export_group("Placement")
 
@@ -22,19 +27,20 @@ const INVALID_CELL: Vector2i = Vector2i(
 	14.0
 )
 
-## Количество клеток по горизонтали,
-## в которых разрешён поиск поверхности.
-@export var horizontal_cells_from_player: int = 1
-
-## Сколько рядов ниже ног персонажа
-## проверять в поисках блока-основания.
-@export var support_rows_below_feet: int = 2
-
 ## Слой физических коллизий занятых объектов.
 @export_flags_2d_physics var placement_collision_mask: int = 1
 
+## Цвет проекции, когда костёр можно поставить.
+@export var preview_allowed_color: Color = Color(0.35, 1.0, 0.4, 0.55)
+
+## Цвет проекции, когда поставить нельзя.
+@export var preview_blocked_color: Color = Color(1.0, 0.3, 0.3, 0.5)
+
 
 var _terrain: TerrainLayer
+
+## Полупрозрачный призрак будущего костра.
+var _preview: Sprite2D
 
 
 func _ready() -> void:
@@ -46,6 +52,136 @@ func _ready() -> void:
 		push_error(
 			"CampfirePlacement: не найден TerrainLayer."
 		)
+
+
+func _process(_delta: float) -> void:
+	# Проекция видна, пока костёр в руке: зелёная — можно, красная — нельзя.
+	if get_tree().paused:
+		_hide_preview()
+		return
+
+	if not _selected_is_campfire():
+		_hide_preview()
+		return
+
+	if _terrain == null or not is_instance_valid(_terrain):
+		_terrain = _find_terrain()
+
+	if _terrain == null:
+		_hide_preview()
+		return
+
+	var player: Node2D = _find_player()
+
+	if player == null:
+		_hide_preview()
+		return
+
+	var viewport: Viewport = get_viewport()
+
+	var mouse_world_position: Vector2 = (
+		viewport.get_canvas_transform().affine_inverse()
+		* viewport.get_mouse_position()
+	)
+
+	var placement_cell: Vector2i = (
+		_terrain.global_position_to_cell(
+			mouse_world_position
+		)
+	)
+
+	var placement_position: Vector2 = (
+		_terrain.get_cell_global_center(
+			placement_cell
+		)
+	)
+
+	var is_allowed: bool = _is_cell_valid_for_placement(
+		placement_cell,
+		player
+	)
+
+	_show_preview(
+		placement_position,
+		preview_allowed_color if is_allowed else preview_blocked_color
+	)
+
+
+## Возвращает true, если в выбранном слоте панели лежит костёр.
+func _selected_is_campfire() -> bool:
+	var player: Node2D = _find_player()
+
+	if player == null:
+		return false
+
+	var inventory = player.get("inventory")
+
+	if inventory == null:
+		return false
+
+	var selected_hotbar_index: int = clampi(
+		int(
+			player.get_meta(
+				"selected_hotbar_index",
+				0
+			)
+		),
+		0,
+		8
+	)
+
+	var selected_stack = inventory.get_slot(
+		27 + selected_hotbar_index
+	)
+
+	if selected_stack == null:
+		return false
+
+	if selected_stack.is_empty():
+		return false
+
+	return selected_stack.item_id == &"campfire"
+
+
+func _ensure_preview() -> void:
+	if _preview != null and is_instance_valid(_preview):
+		return
+
+	_preview = Sprite2D.new()
+	_preview.texture = PREVIEW_BASE_TEXTURE
+	_preview.scale = Vector2(0.5, 0.5)
+	_preview.z_index = 100
+	_preview.visible = false
+
+	var world: Node = get_tree().current_scene
+
+	if world != null:
+		world.add_child(_preview)
+
+
+func _show_preview(
+	world_position: Vector2,
+	preview_color: Color
+) -> void:
+	_ensure_preview()
+
+	if _preview == null or not is_instance_valid(_preview):
+		return
+
+	if _preview.get_parent() == null:
+		var world: Node = get_tree().current_scene
+
+		if world != null:
+			world.add_child(_preview)
+
+	_preview.global_position = world_position
+	_preview.modulate = preview_color
+	_preview.visible = true
+
+
+func _hide_preview() -> void:
+	if _preview != null and is_instance_valid(_preview):
+		_preview.visible = false
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -114,13 +250,16 @@ func _unhandled_input(event: InputEvent) -> void:
 	)
 
 	var placement_cell: Vector2i = (
-		_find_best_placement_cell(
-			player,
+		_terrain.global_position_to_cell(
 			mouse_world_position
 		)
 	)
 
-	if placement_cell == INVALID_CELL:
+	# Ставим только туда, где проекция зелёная.
+	if not _is_cell_valid_for_placement(
+		placement_cell,
+		player
+	):
 		return
 
 	var placement_position: Vector2 = (
@@ -159,22 +298,20 @@ func _unhandled_input(event: InputEvent) -> void:
 	viewport.set_input_as_handled()
 
 
-func _find_best_placement_cell(
-	player: Node2D,
-	mouse_world_position: Vector2
-) -> Vector2i:
-	if _terrain == null:
-		return INVALID_CELL
+## Проверяет, можно ли поставить костёр в конкретную клетку.
+func _is_cell_valid_for_placement(
+	cell_coordinates: Vector2i,
+	player: Node2D
+) -> bool:
+	if _terrain == null or player == null:
+		return false
 
-	var player_feet_position: Vector2 = (
-		player.global_position + player_feet_offset
-	)
-
-	var feet_cell: Vector2i = (
-		_terrain.global_position_to_cell(
-			player_feet_position
-		)
-	)
+	# Под костром обязан быть блок-основание.
+	# Ось Y направлена вниз, поэтому клетка снизу — это Y + 1.
+	if not _terrain.has_block_at_cell(
+		cell_coordinates + Vector2i(0, 1)
+	):
+		return false
 
 	var player_cell: Vector2i = (
 		_terrain.global_position_to_cell(
@@ -182,90 +319,37 @@ func _find_best_placement_cell(
 		)
 	)
 
-	var valid_cells: Array[Vector2i] = []
+	# Нельзя ставить костёр в клетку персонажа.
+	if cell_coordinates == player_cell:
+		return false
 
-	# Ищем существующие блоки рядом с ногами.
-	# Костёр ставится в клетку непосредственно над блоком.
-	for offset_y: int in range(
-		0,
-		support_rows_below_feet + 1
+	# Сама клетка должна быть свободной.
+	if not _can_place_at_cell(
+		cell_coordinates,
+		player
 	):
-		for offset_x: int in range(
-			-horizontal_cells_from_player,
-			horizontal_cells_from_player + 1
-		):
-			var support_cell: Vector2i = (
-				feet_cell
-				+ Vector2i(offset_x, offset_y)
-			)
+		return false
 
-			# В клетке-основании должен находиться блок.
-			if not _terrain.has_block_at_cell(
-				support_cell
-			):
-				continue
+	var player_feet_position: Vector2 = (
+		player.global_position + player_feet_offset
+	)
 
-			# В Godot ось Y направлена вниз,
-			# поэтому клетка сверху имеет координату Y - 1.
-			var placement_cell: Vector2i = (
-				support_cell + Vector2i(0, -1)
-			)
-
-			# Нельзя ставить костёр в клетку персонажа.
-			if placement_cell == player_cell:
-				continue
-
-			# Клетка над блоком должна быть свободной.
-			if not _can_place_at_cell(
-				placement_cell,
-				player
-			):
-				continue
-
-			var placement_position: Vector2 = (
-				_terrain.get_cell_global_center(
-					placement_cell
-				)
-			)
-
-			# Защита от установки слишком далеко.
-			if (
-				placement_position.distance_to(
-					player_feet_position
-				)
-				> maximum_distance
-			):
-				continue
-
-			if not valid_cells.has(placement_cell):
-				valid_cells.append(placement_cell)
-
-	if valid_cells.is_empty():
-		return INVALID_CELL
-
-	# Курсор выбирает ближайшую разрешённую клетку.
-	# Он не может выбрать произвольную клетку в воздухе.
-	var best_cell: Vector2i = valid_cells[0]
-	var best_distance: float = INF
-
-	for candidate_cell: Vector2i in valid_cells:
-		var candidate_position: Vector2 = (
-			_terrain.get_cell_global_center(
-				candidate_cell
-			)
+	var placement_position: Vector2 = (
+		_terrain.get_cell_global_center(
+			cell_coordinates
 		)
+	)
 
-		var distance_to_mouse: float = (
-			candidate_position.distance_squared_to(
-				mouse_world_position
-			)
+	# Защита от установки слишком далеко.
+	if (
+		placement_position.distance_to(
+			player_feet_position
 		)
+		> maximum_distance
+	):
+		return false
 
-		if distance_to_mouse < best_distance:
-			best_distance = distance_to_mouse
-			best_cell = candidate_cell
-
-	return best_cell
+	return true
 
 
 func _can_place_at_cell(

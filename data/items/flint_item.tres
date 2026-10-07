@@ -7,6 +7,8 @@
 script = ExtResource("1_iax6n")
 item_id = &"flint"
 display_name = "Кремень"
+name_few = "кремня"
+name_many = "кремней"
 unit_weight_kg = 0.2
 icon = ExtResource("1_tk73y")
 metadata/_custom_type_script = "uid://3qxqhdjdwyge"

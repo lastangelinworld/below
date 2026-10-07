@@ -1,3 +1,8 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+
+# Сам редактор Godot и любые сборки: GitHub не принимает файлы больше 100 МБ
+*.exe
+/build/
+/export/

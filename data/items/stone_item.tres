@@ -7,6 +7,8 @@
 script = ExtResource("1_6ryx4")
 item_id = &"stone"
 display_name = "Камень"
+name_few = "камня"
+name_many = "камней"
 unit_weight_kg = 2.0
 icon = ExtResource("1_fmy03")
 metadata/_custom_type_script = "uid://3qxqhdjdwyge"

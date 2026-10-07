@@ -33,6 +33,9 @@ var _tile_size: Vector2 = Vector2(32.0, 32.0)
 func _ready() -> void:
 	z_index = 100
 
+	# Работаем и на паузе, иначе выделение застынет на экране.
+	process_mode = Node.PROCESS_MODE_ALWAYS
+
 	if terrain == null:
 		push_error(
 			"BlockCursor должен быть дочерним узлом Terrain."
@@ -58,6 +61,14 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	if terrain == null or player == null:
+		return
+
+	# Мёртвым и на паузе ничего не выделяем.
+	if get_tree().paused or bool(player.get("is_dead")):
+		target_block = null
+		if visible:
+			visible = false
+			queue_redraw()
 		return
 
 	target_cell = terrain.global_position_to_cell(

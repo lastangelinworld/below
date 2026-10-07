@@ -4,6 +4,7 @@ extends CharacterBody2D
 signal health_changed(current_health: int, maximum_health: int)
 signal stamina_changed(current_stamina: float, maximum_stamina: float)
 signal died
+signal item_picked_up(item_id: StringName, amount: int)
 
 
 enum MiningAreaOrientation {
@@ -141,7 +142,16 @@ var jump_stamina_cost: float = 12.0
 
 ## Дополнительный отступ наружу при поиске опасных блоков.
 @export_range(0.0, 16.0, 0.5)
-var hazard_contact_margin: float = 2.0
+var hazard_contact_margin: float = 0.0
+
+## Какая часть клетки опасна, считая снизу.
+## 1.0 — вся клетка, 0.5 — только нижняя половина, где сами шипы.
+@export_range(0.1, 1.0, 0.05)
+var hazard_cell_fill_ratio: float = 0.5
+
+## Насколько глубоко нужно задеть шипы, чтобы получить урон.
+@export_range(0.0, 16.0, 0.5)
+var hazard_minimum_overlap: float = 4.0
 
 ## Урон по умолчанию, если у BlockType нет contact_damage.
 @export_range(0, 1000, 1)
@@ -274,6 +284,8 @@ var current_health: int = 100
 var current_stamina: float = 100.0
 var stamina_regeneration_allowed_at: float = 0.0
 var is_dead: bool = false
+## Точка появления, в неё возвращаем персонажа после смерти.
+var _spawn_position: Vector2 = Vector2.ZERO
 var hazard_damage_allowed_at: Dictionary = {}
 var environment_movement_multiplier: float = 1.0
 var environment_vertical_multiplier: float = 1.0
@@ -302,6 +314,7 @@ var opened_chest: ChestContainer = null
 
 func _ready() -> void:
 	add_to_group("player")
+	_spawn_position = global_position
 	_initialize_inventory()
 	visuals_base_scale_x = absf(visuals.scale.x)
 	body_breath_base_rotation = body_breath.rotation
@@ -917,6 +930,14 @@ func heal(amount: int) -> void:
 	health_changed.emit(current_health, max_health)
 
 
+## Возрождает персонажа в точке появления.
+func respawn() -> void:
+	get_tree().paused = false
+	global_position = _spawn_position
+	velocity = Vector2.ZERO
+	revive()
+
+
 func revive() -> void:
 	is_dead = false
 	current_health = max_health
@@ -949,6 +970,9 @@ func _die() -> void:
 
 	died.emit()
 
+	# Полностью замораживаем игру: ни копать, ни выделять, ни подбирать.
+	get_tree().paused = true
+
 
 func _update_hazard_damage(_delta: float) -> void:
 	if is_dead or terrain == null or terrain.tile_set == null:
@@ -980,6 +1004,23 @@ func _update_hazard_damage(_delta: float) -> void:
 				continue
 
 			var interval: float = maxf(0.05, float(hazard_data.get("contact_damage_interval", default_hazard_contact_interval)))
+
+			# Опасна только нижняя часть клетки — там, где сами шипы.
+			var cell_center: Vector2 = terrain.get_cell_global_center(cell)
+			var hazard_height: float = tile_size.y * hazard_cell_fill_ratio
+			var hazard_rect := Rect2(
+				Vector2(
+					cell_center.x - tile_size.x * 0.5,
+					cell_center.y + tile_size.y * 0.5 - hazard_height
+				),
+				Vector2(tile_size.x, hazard_height)
+			)
+
+			# Нужно реальное пересечение с шипами, а не просто соседняя клетка.
+			var overlap: Rect2 = contact_rect.intersection(hazard_rect)
+			if overlap.size.x < hazard_minimum_overlap or overlap.size.y < hazard_minimum_overlap:
+				continue
+
 			overlapping_hazards[cell] = true
 			var next_damage_time: float = float(hazard_damage_allowed_at.get(cell, 0.0))
 			if now < next_damage_time:
@@ -1048,6 +1089,8 @@ func receive_item(item_id: StringName, amount: int) -> int:
 	if inventory == null or amount <= 0:
 		return 0
 	var accepted: int = inventory.add_item(item_id, amount)
+	if accepted > 0:
+		item_picked_up.emit(item_id, accepted)
 	if accepted < amount:
 		print("Не удалось подобрать всё: %s × %d. Нет места или превышен вес." % [item_id, amount - accepted])
 	return accepted

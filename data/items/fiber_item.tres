@@ -7,6 +7,8 @@
 script = ExtResource("1_pwyiy")
 item_id = &"fiber"
 display_name = "Волокно"
+name_few = "волокна"
+name_many = "волокон"
 unit_weight_kg = 0.05
 icon = ExtResource("1_58qyf")
 metadata/_custom_type_script = "uid://3qxqhdjdwyge"

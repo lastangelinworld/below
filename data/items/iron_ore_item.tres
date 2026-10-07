@@ -7,6 +7,8 @@
 script = ExtResource("1_fhsm2")
 item_id = &"iron_ore"
 display_name = "Железная руда"
+name_few = "железной руды"
+name_many = "железной руды"
 unit_weight_kg = 3.0
 icon = ExtResource("1_t0jjx")
 metadata/_custom_type_script = "uid://3qxqhdjdwyge"

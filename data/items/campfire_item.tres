@@ -7,6 +7,8 @@
 script = ExtResource("1_2tg6d")
 item_id = &"campfire"
 display_name = "Костёр"
+name_few = "костра"
+name_many = "костров"
 unit_weight_kg = 5.0
 max_stack = 16
 icon = ExtResource("1_0ga1p")

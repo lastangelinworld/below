@@ -7,5 +7,7 @@
 script = ExtResource("1_5e30s")
 item_id = &"sand"
 display_name = "Песок"
+name_few = "песка"
+name_many = "песка"
 icon = ExtResource("1_qggru")
 metadata/_custom_type_script = "uid://3qxqhdjdwyge"

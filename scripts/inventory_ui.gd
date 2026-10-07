@@ -47,6 +47,8 @@ func _process(_delta: float) -> void:
         carry_preview.position = get_viewport().get_mouse_position() + Vector2(18, 18)
 
 func _input(event: InputEvent) -> void:
+    if _is_player_dead():
+        return
     if event.is_action_pressed("toggle_inventory"):
         if overlay.visible:
             close_inventory()
@@ -66,6 +68,12 @@ func _input(event: InputEvent) -> void:
         var key := event as InputEventKey
         if key.keycode >= KEY_1 and key.keycode <= KEY_9:
             set_selected_hotbar(key.keycode - KEY_1)
+
+func _is_player_dead() -> bool:
+    var player := get_tree().get_first_node_in_group("player")
+    if player == null:
+        return false
+    return bool(player.get("is_dead"))
 
 func is_inventory_open() -> bool:
     return overlay.visible
