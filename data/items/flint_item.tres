@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://qguomfv6r1hl"]
+
+[ext_resource type="Script" uid="uid://3qxqhdjdwyge" path="res://scripts/item_data.gd" id="1_iax6n"]
+[ext_resource type="Texture2D" uid="uid://ctjkt7pl8k8tt" path="res://Texture/item icon/flint item.png" id="1_tk73y"]
+
+[resource]
+script = ExtResource("1_iax6n")
+item_id = &"flint"
+display_name = "Кремень"
+unit_weight_kg = 0.2
+icon = ExtResource("1_tk73y")
+metadata/_custom_type_script = "uid://3qxqhdjdwyge"

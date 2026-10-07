@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BlockType" format=3 uid="uid://cl8i0ic1slnw8"]
+
+[ext_resource type="Script" uid="uid://ct41wouwnqmcf" path="res://scripts/block_type.gd" id="1_l8fpe"]
+
+[resource]
+script = ExtResource("1_l8fpe")
+block_id = &"iron_ore"
+display_name = "Железная руда"
+atlas_coordinates = Vector2i(2, 0)
+max_health = 5
+required_tool_level = 1
+drop_item_id = &"iron_ore"
+noise_per_hit = 2
+metadata/_custom_type_script = "uid://ct41wouwnqmcf"

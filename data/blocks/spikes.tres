@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="BlockType" format=3 uid="uid://ceo5kt37csbnh"]
+
+[ext_resource type="Script" uid="uid://ct41wouwnqmcf" path="res://scripts/block_type.gd" id="1"]
+[ext_resource type="Script" uid="uid://dcnol6cwfjl7v" path="res://scripts/drop_entry.gd" id="1_omurs"]
+
+[resource]
+script = ExtResource("1")
+block_id = &"spikes"
+display_name = "Шипы"
+atlas_coordinates = Vector2i(5, 0)
+solid = false
+max_health = 3
+noise_per_hit = 4
+break_particle_color = Color(0.72, 0.72, 0.75, 1)
+drop_item_id = &"iron_ore"
+drop_amount = 1
+is_hazard = true
+contact_damage = 15

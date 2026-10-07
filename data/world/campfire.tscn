@@ -1,0 +1,67 @@
+[gd_scene format=3 uid="uid://cbjmhd0xql2a0"]
+
+[ext_resource type="Script" uid="uid://na2klx80vmql" path="res://scripts/campfire.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://dxggesup3yi6" path="res://assets/campfire/1.png" id="2_03ppr"]
+[ext_resource type="Texture2D" uid="uid://ders43kveb4u4" path="res://assets/campfire/2.png" id="3_sd3lr"]
+[ext_resource type="Texture2D" uid="uid://cxud7tuelhxtv" path="res://assets/campfire/3.png" id="4_iolep"]
+[ext_resource type="Texture2D" uid="uid://cms6xxd47klb" path="res://assets/campfire/4.png" id="5_mfmd7"]
+[ext_resource type="Texture2D" uid="uid://tpa1ojr5gtdn" path="res://assets/campfire/6.png" id="6_xwl4g"]
+[ext_resource type="Texture2D" uid="uid://btaqx6gg11eys" path="res://assets/campfire/5.png" id="7_lenqg"]
+[ext_resource type="Texture2D" uid="uid://bpp4midsl2ul" path="res://assets/campfire/0.png" id="8_l7qc1"]
+
+[sub_resource type="CircleShape2D" id="area_shape"]
+radius = 24.0
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_7a4le"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("2_03ppr")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_sd3lr")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_iolep")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_mfmd7")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_xwl4g")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_lenqg")
+}],
+"loop": 1,
+"name": &"burn",
+"speed": 6.0
+}]
+
+[node name="Campfire" type="Node2D" unique_id=1638280347]
+script = ExtResource("1")
+
+[node name="InteractionArea" type="Area2D" parent="." unique_id=939702674]
+collision_layer = 4
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="InteractionArea" unique_id=2073007915]
+position = Vector2(0, -5)
+shape = SubResource("area_shape")
+
+[node name="PointLight2D" type="PointLight2D" parent="." unique_id=157663555]
+position = Vector2(0, -10)
+color = Color(1, 0.52, 0.22, 1)
+energy = 0.85
+texture_scale = 2.0
+
+[node name="CampfireFlame" type="AnimatedSprite2D" parent="." unique_id=1401139873]
+scale = Vector2(0.5, 0.5)
+sprite_frames = SubResource("SpriteFrames_7a4le")
+animation = &"burn"
+autoplay = "burn"
+
+[node name="CampfireBase" type="Sprite2D" parent="." unique_id=1366750586]
+z_index = -1
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("8_l7qc1")

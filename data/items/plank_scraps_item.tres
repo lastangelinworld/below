@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://ceox0qa4axqyn"]
+
+[ext_resource type="Texture2D" uid="uid://ckhxi6kophap2" path="res://Texture/item icon/plank scraps item.png" id="1_lmhvi"]
+[ext_resource type="Script" uid="uid://3qxqhdjdwyge" path="res://scripts/item_data.gd" id="1_mxdm0"]
+
+[resource]
+script = ExtResource("1_mxdm0")
+item_id = &"plank_scraps"
+display_name = "Обломки досок"
+icon = ExtResource("1_lmhvi")
+metadata/_custom_type_script = "uid://3qxqhdjdwyge"

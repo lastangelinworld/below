@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://clvd8ud7qwbj0"]
+
+[ext_resource type="Script" uid="uid://3qxqhdjdwyge" path="res://scripts/item_data.gd" id="1_6ryx4"]
+[ext_resource type="Texture2D" uid="uid://db2j6ws7rmidp" path="res://Texture/item icon/stone item.png" id="1_fmy03"]
+
+[resource]
+script = ExtResource("1_6ryx4")
+item_id = &"stone"
+display_name = "Камень"
+unit_weight_kg = 2.0
+icon = ExtResource("1_fmy03")
+metadata/_custom_type_script = "uid://3qxqhdjdwyge"

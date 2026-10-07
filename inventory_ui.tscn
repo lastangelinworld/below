@@ -1,0 +1,214 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory_ui.gd" id="1"]
+[ext_resource type="PackedScene" path="res://ui/inventory/inventory_slot_ui.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://data/items/item_pickup.tscn" id="3"]
+[sub_resource type="StyleBoxFlat" id="window"]
+bg_color = Color(0.055, 0.065, 0.08, 0.98)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.35, 0.41, 0.48, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+[sub_resource type="StyleBoxFlat" id="hud"]
+bg_color = Color(0.04, 0.05, 0.065, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.3, 0.35, 0.42, 1)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+[sub_resource type="StyleBoxFlat" id="bar_bg"]
+bg_color = Color(0.08, 0.09, 0.11, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.28, 0.31, 0.36, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+[sub_resource type="StyleBoxFlat" id="bar_fill"]
+bg_color = Color(0.24, 0.68, 0.42, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+[sub_resource type="StyleBoxFlat" id="carry"]
+bg_color = Color(0.04, 0.05, 0.07, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.8, 0.83, 0.9, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="InventoryUI" type="CanvasLayer"]
+layer = 20
+script = ExtResource("1")
+slot_scene = ExtResource("2")
+pickup_scene = ExtResource("3")
+
+[node name="Overlay" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 0
+color = Color(0, 0, 0, 0.58)
+[node name="Center" type="CenterContainer" parent="Overlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 1
+[node name="InventoryWindow" type="PanelContainer" parent="Overlay/Center"]
+custom_minimum_size = Vector2(890, 570)
+layout_mode = 2
+theme_override_styles/panel = SubResource("window")
+[node name="Margin" type="MarginContainer" parent="Overlay/Center/InventoryWindow"]
+layout_mode = 2
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 18
+[node name="Main" type="VBoxContainer" parent="Overlay/Center/InventoryWindow/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 9
+[node name="Title" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "ИНВЕНТАРЬ"
+horizontal_alignment = 1
+[node name="Content" type="HBoxContainer" parent="Overlay/Center/InventoryWindow/Margin/Main"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 28
+[node name="PlayerColumn" type="VBoxContainer" parent="Overlay/Center/InventoryWindow/Margin/Main/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+[node name="BackpackLabel" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/PlayerColumn"]
+layout_mode = 2
+text = "РЮКЗАК"
+[node name="MainInventoryGrid" type="GridContainer" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/PlayerColumn"]
+layout_mode = 2
+columns = 9
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4
+[node name="HotbarLabel" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/PlayerColumn"]
+layout_mode = 2
+text = "ПАНЕЛЬ БЫСТРОГО ДОСТУПА"
+[node name="InventoryHotbarGrid" type="GridContainer" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/PlayerColumn"]
+layout_mode = 2
+columns = 9
+theme_override_constants/h_separation = 4
+[node name="CraftColumn" type="VBoxContainer" parent="Overlay/Center/InventoryWindow/Margin/Main/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+theme_override_constants/separation = 12
+[node name="CraftLabel" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/CraftColumn"]
+layout_mode = 2
+text = "КРАФТ 3 × 3"
+horizontal_alignment = 1
+[node name="CraftRow" type="HBoxContainer" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/CraftColumn"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 14
+[node name="CraftGrid" type="GridContainer" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/CraftColumn/CraftRow"]
+layout_mode = 2
+columns = 3
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4
+[node name="Arrow" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/CraftColumn/CraftRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 25
+text = "→"
+vertical_alignment = 1
+[node name="ResultHolder" type="CenterContainer" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/CraftColumn/CraftRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(58, 58)
+[node name="Recipe" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/CraftColumn"]
+layout_mode = 2
+text = "Костёр:\n  кремень\nдоски ×3\n  кремень"
+horizontal_alignment = 1
+[node name="WeightBar" type="ProgressBar" parent="Overlay/Center/InventoryWindow/Margin/Main"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+max_value = 300.0
+show_percentage = false
+theme_override_styles/background = SubResource("bar_bg")
+theme_override_styles/fill = SubResource("bar_fill")
+[node name="WeightLabel" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main"]
+layout_mode = 2
+text = "Вес: 0.00 / 300.00 кг"
+horizontal_alignment = 1
+[node name="Hint" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "ЛКМ — стак • ПКМ — половина/1 шт. • Q — выбросить • Tab/Esc — закрыть"
+horizontal_alignment = 1
+
+[node name="HotbarHUD" type="PanelContainer" parent="."]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -270.0
+offset_top = -92.0
+offset_right = 270.0
+offset_bottom = -12.0
+mouse_filter = 1
+theme_override_styles/panel = SubResource("hud")
+[node name="Margin" type="MarginContainer" parent="HotbarHUD"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 5
+[node name="VBox" type="VBoxContainer" parent="HotbarHUD/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 2
+[node name="HotbarGrid" type="GridContainer" parent="HotbarHUD/Margin/VBox"]
+layout_mode = 2
+columns = 9
+theme_override_constants/h_separation = 4
+[node name="SelectedLabel" type="Label" parent="HotbarHUD/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "1 — пусто"
+horizontal_alignment = 1
+
+[node name="CarryPreview" type="Control" parent="."]
+custom_minimum_size = Vector2(56, 56)
+mouse_filter = 2
+[node name="Panel" type="PanelContainer" parent="CarryPreview"]
+layout_mode = 0
+offset_right = 56.0
+offset_bottom = 56.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("carry")
+[node name="Icon" type="TextureRect" parent="CarryPreview/Panel"]
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+[node name="Amount" type="Label" parent="CarryPreview/Panel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 17
+horizontal_alignment = 2
+vertical_alignment = 2

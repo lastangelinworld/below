@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BlockType" format=3 uid="uid://bis45drevrrig"]
+
+[ext_resource type="Script" uid="uid://ct41wouwnqmcf" path="res://scripts/block_type.gd" id="1"]
+[ext_resource type="Script" uid="uid://dcnol6cwfjl7v" path="res://scripts/drop_entry.gd" id="1_xgilp"]
+
+[resource]
+script = ExtResource("1")
+block_id = &"chest"
+display_name = "Сундук"
+atlas_coordinates = Vector2i(4, 0)
+max_health = 5
+noise_per_hit = 8
+break_particle_color = Color(0.55, 0.3, 0.12, 1)
+drop_item_id = &"plank_scraps"
+drop_amount = 1

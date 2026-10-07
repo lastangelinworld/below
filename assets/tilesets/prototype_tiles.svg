@@ -1,0 +1,51 @@
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="128"
+    height="32"
+    viewBox="0 0 128 32"
+    shape-rendering="crispEdges">
+
+    <!-- Камень: координата атласа (0, 0) -->
+    <g>
+        <rect x="0" y="0" width="32" height="32" fill="#666b73"/>
+        <rect x="3" y="5" width="8" height="5" fill="#747a83"/>
+        <rect x="18" y="3" width="10" height="7" fill="#585d65"/>
+        <rect x="7" y="18" width="11" height="7" fill="#555a62"/>
+        <rect x="22" y="21" width="7" height="6" fill="#777d86"/>
+        <rect x="0" y="0" width="32" height="32"
+              fill="none" stroke="#464a50" stroke-width="2"/>
+    </g>
+
+    <!-- Мягкий камень: координата атласа (1, 0) -->
+    <g>
+        <rect x="32" y="0" width="32" height="32" fill="#806b57"/>
+        <rect x="36" y="4" width="10" height="6" fill="#917963"/>
+        <rect x="51" y="7" width="8" height="9" fill="#6f5c4b"/>
+        <rect x="39" y="19" width="8" height="7" fill="#6e5a49"/>
+        <rect x="52" y="21" width="9" height="6" fill="#947b64"/>
+        <rect x="32" y="0" width="32" height="32"
+              fill="none" stroke="#55473a" stroke-width="2"/>
+    </g>
+
+    <!-- Железная руда: координата атласа (2, 0) -->
+    <g>
+        <rect x="64" y="0" width="32" height="32" fill="#5d626a"/>
+        <rect x="68" y="4" width="8" height="6" fill="#aa6845"/>
+        <rect x="83" y="5" width="7" height="9" fill="#c17b50"/>
+        <rect x="73" y="16" width="9" height="7" fill="#9c5b3c"/>
+        <rect x="85" y="23" width="6" height="5" fill="#cf8455"/>
+        <rect x="64" y="0" width="32" height="32"
+              fill="none" stroke="#3f4349" stroke-width="2"/>
+    </g>
+
+    <!-- Неразрушаемая порода: координата атласа (3, 0) -->
+    <g>
+        <rect x="96" y="0" width="32" height="32" fill="#272933"/>
+        <rect x="100" y="4" width="11" height="8" fill="#363946"/>
+        <rect x="115" y="3" width="8" height="11" fill="#1e2028"/>
+        <rect x="103" y="18" width="7" height="9" fill="#1c1e26"/>
+        <rect x="114" y="19" width="10" height="7" fill="#3b3e4b"/>
+        <rect x="96" y="0" width="32" height="32"
+              fill="none" stroke="#121319" stroke-width="2"/>
+    </g>
+</svg>

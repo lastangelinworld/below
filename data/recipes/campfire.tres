@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="CraftingRecipe" format=3 uid="uid://dp4udl0uwu4wv"]
+
+[ext_resource type="Script" uid="uid://dmwkhfh53qwo0" path="res://scripts/crafting_recipe.gd" id="1_g2ncq"]
+
+[resource]
+script = ExtResource("1_g2ncq")
+recipe_id = &"campfire"
+pattern = Array[StringName]([&"", &"flint", &"", &"plank_scraps", &"plank_scraps", &"plank_scraps", &"", &"flint", &""])
+output_item_id = &"campfire"
+metadata/_custom_type_script = "uid://dmwkhfh53qwo0"

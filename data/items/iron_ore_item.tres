@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://bqxbqqnr8uxgr"]
+
+[ext_resource type="Script" uid="uid://3qxqhdjdwyge" path="res://scripts/item_data.gd" id="1_fhsm2"]
+[ext_resource type="Texture2D" uid="uid://d35nmhdxonqja" path="res://Texture/item icon/iron item.png" id="1_t0jjx"]
+
+[resource]
+script = ExtResource("1_fhsm2")
+item_id = &"iron_ore"
+display_name = "Железная руда"
+unit_weight_kg = 3.0
+icon = ExtResource("1_t0jjx")
+metadata/_custom_type_script = "uid://3qxqhdjdwyge"

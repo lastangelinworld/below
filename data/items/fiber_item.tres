@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://xxtea5d2ue2n"]
+
+[ext_resource type="Texture2D" uid="uid://bonarisys6wdu" path="res://Texture/item icon/fiber item.png" id="1_58qyf"]
+[ext_resource type="Script" uid="uid://3qxqhdjdwyge" path="res://scripts/item_data.gd" id="1_pwyiy"]
+
+[resource]
+script = ExtResource("1_pwyiy")
+item_id = &"fiber"
+display_name = "Волокно"
+unit_weight_kg = 0.05
+icon = ExtResource("1_58qyf")
+metadata/_custom_type_script = "uid://3qxqhdjdwyge"

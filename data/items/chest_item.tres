@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://ch58f70hs1thy"]
+
+[ext_resource type="Script" uid="uid://3qxqhdjdwyge" path="res://scripts/item_data.gd" id="1_6v2f4"]
+[ext_resource type="Texture2D" uid="uid://1muhgx2wctpa" path="res://Texture/item icon/chest item.png" id="1_65cip"]
+
+[resource]
+script = ExtResource("1_6v2f4")
+item_id = &"chest"
+display_name = "Сундук"
+unit_weight_kg = 10.0
+max_stack = 1
+icon = ExtResource("1_65cip")
+metadata/_custom_type_script = "uid://3qxqhdjdwyge"

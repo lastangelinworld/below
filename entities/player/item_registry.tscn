@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://0lfovfyn8veb"]
+
+[ext_resource type="Script" uid="uid://b83ltbwcghl57" path="res://scripts/item_registry.gd" id="1_588pl"]
+[ext_resource type="Script" uid="uid://3qxqhdjdwyge" path="res://scripts/item_data.gd" id="2_e1jus"]
+[ext_resource type="Resource" uid="uid://clvd8ud7qwbj0" path="res://data/items/stone_item.tres" id="3_m6mr2"]
+[ext_resource type="Resource" uid="uid://dfiscs8ic41jf" path="res://data/items/sand_item.tres" id="4_3g7rt"]
+[ext_resource type="Resource" uid="uid://ceox0qa4axqyn" path="res://data/items/plank_scraps_item.tres" id="5_vwxsl"]
+[ext_resource type="Resource" uid="uid://bqxbqqnr8uxgr" path="res://data/items/iron_ore_item.tres" id="6_43udr"]
+[ext_resource type="Resource" uid="uid://qguomfv6r1hl" path="res://data/items/flint_item.tres" id="7_avkaj"]
+[ext_resource type="Resource" uid="uid://xxtea5d2ue2n" path="res://data/items/fiber_item.tres" id="8_wtww3"]
+[ext_resource type="Resource" uid="uid://ch58f70hs1thy" path="res://data/items/chest_item.tres" id="9_aasaq"]
+[ext_resource type="Resource" uid="uid://vjg41257yoxb" path="res://data/items/campfire_item.tres" id="10_rlflg"]
+
+[node name="ItemRegistry" type="Node2D" unique_id=1258065676]
+script = ExtResource("1_588pl")
+items = Array[ExtResource("2_e1jus")]([ExtResource("3_m6mr2"), ExtResource("4_3g7rt"), ExtResource("5_vwxsl"), ExtResource("6_43udr"), ExtResource("7_avkaj"), ExtResource("8_wtww3"), ExtResource("9_aasaq"), ExtResource("10_rlflg")])

@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://b3vh1hsnj2exj"]
+
+[node name="Node2D" type="Node2D" unique_id=1858830776]
+
+[node name="ChestContainer" type="StaticBody2D" parent="." unique_id=897262947]
+
+[node name="Sprite2D" type="Sprite2D" parent="ChestContainer" unique_id=159146918]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ChestContainer" unique_id=619905581]
+
+[node name="InteractionArea" type="Area2D" parent="ChestContainer" unique_id=1866960675]
