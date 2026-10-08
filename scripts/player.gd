@@ -261,7 +261,7 @@ var vertical_attack_ratio: float = 0.75
 @onready var player_collision: CollisionShape2D = $CollisionShape2D
 @onready var body_breath: Node2D = $Visuals/BodyBreath
 @onready var head_breath: Node2D = get_node_or_null(
-	"Visuals/BodyBreath/HeadBreath"
+	"Visuals/BodyBreath/NeckPivot/HeadBreath"
 ) as Node2D
 @onready var front_arm_aim: Node2D = $Visuals/BodyBreath/FrontArmAim
 @onready var locomotion_player: AnimationPlayer = $LocomotionPlayer
@@ -904,7 +904,7 @@ func _update_stamina(delta: float) -> void:
 		stamina_changed.emit(current_stamina, max_stamina)
 
 
-func take_damage(amount: int, source_position: Vector2 = Vector2.ZERO) -> void:
+func take_damage(amount: int, _source_position: Vector2 = Vector2.ZERO) -> void:
 	if is_dead or amount <= 0:
 		return
 
@@ -1119,3 +1119,41 @@ func transfer_opened_chest_slot_to_player(slot_index: int, amount: int) -> int:
 	if inventory == null or opened_chest == null or opened_chest.inventory == null:
 		return 0
 	return InventoryData.transfer_slot_to(opened_chest.inventory, inventory, slot_index, amount)
+
+
+# --- Temporary food effects added by the chest/campfire update ---
+func below_consume_food_from_slot(slot_index: int) -> bool:
+	if inventory == null: return false
+	var stack: ItemStack=inventory.get_slot(slot_index)
+	if stack == null or stack.is_empty(): return false
+	var hp_bonus:=0.0; var stamina_bonus:=0.0
+	if stack.item_id == &"raw_meat": hp_bonus=5.0
+	elif stack.item_id == &"cooked_meat": hp_bonus=10.0; stamina_bonus=5.0
+	else: return false
+	stack.amount-=1
+	if stack.amount <= 0: stack.clear()
+	inventory.changed.emit()
+	_below_apply_temporary_stat_bonus(hp_bonus,stamina_bonus,1800.0)
+	return true
+
+func _below_find_property(candidates: Array[StringName]) -> StringName:
+	for info: Dictionary in get_property_list():
+		var prop:=StringName(info.get("name",""))
+		if prop in candidates: return prop
+	return &""
+
+func _below_apply_temporary_stat_bonus(hp_bonus: float, stamina_bonus: float, duration: float) -> void:
+	var hp_name:=_below_find_property([&"max_health",&"health_max",&"maximum_health"])
+	var stamina_name:=_below_find_property([&"max_stamina",&"stamina_max",&"maximum_stamina"])
+	if hp_name != &"": set(hp_name,float(get(hp_name))+hp_bonus)
+	if stamina_name != &"": set(stamina_name,float(get(stamina_name))+stamina_bonus)
+	var timer:=get_tree().create_timer(duration)
+	timer.timeout.connect(_below_remove_temporary_stat_bonus.bind(hp_name,stamina_name,hp_bonus,stamina_bonus))
+
+func _below_remove_temporary_stat_bonus(hp_name: StringName, stamina_name: StringName, hp_bonus: float, stamina_bonus: float) -> void:
+	if hp_name != &"": set(hp_name,maxf(1.0,float(get(hp_name))-hp_bonus))
+	if stamina_name != &"": set(stamina_name,maxf(1.0,float(get(stamina_name))-stamina_bonus))
+	var current_hp:=_below_find_property([&"health",&"current_health"])
+	var current_stamina:=_below_find_property([&"stamina",&"current_stamina"])
+	if current_hp != &"" and hp_name != &"": set(current_hp,minf(float(get(current_hp)),float(get(hp_name))))
+	if current_stamina != &"" and stamina_name != &"": set(current_stamina,minf(float(get(current_stamina)),float(get(stamina_name))))

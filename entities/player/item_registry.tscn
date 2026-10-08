@@ -11,6 +11,10 @@
 [ext_resource type="Resource" uid="uid://ch58f70hs1thy" path="res://data/items/chest_item.tres" id="9_aasaq"]
 [ext_resource type="Resource" uid="uid://vjg41257yoxb" path="res://data/items/campfire_item.tres" id="10_rlflg"]
 
+[ext_resource type="Resource" path="res://data/items/raw_meat_item.tres" id="11_food"]
+[ext_resource type="Resource" path="res://data/items/cooked_meat_item.tres" id="12_food"]
+[ext_resource type="Resource" path="res://data/items/coal_item.tres" id="13_food"]
+
 [node name="ItemRegistry" type="Node2D" unique_id=1258065676]
 script = ExtResource("1_588pl")
-items = Array[ExtResource("2_e1jus")]([ExtResource("3_m6mr2"), ExtResource("4_3g7rt"), ExtResource("5_vwxsl"), ExtResource("6_43udr"), ExtResource("7_avkaj"), ExtResource("8_wtww3"), ExtResource("9_aasaq"), ExtResource("10_rlflg")])
+items = Array[ExtResource("2_e1jus")]([ExtResource("3_m6mr2"), ExtResource("4_3g7rt"), ExtResource("5_vwxsl"), ExtResource("6_43udr"), ExtResource("7_avkaj"), ExtResource("8_wtww3"), ExtResource("9_aasaq"), ExtResource("10_rlflg"), ExtResource("11_food"), ExtResource("12_food"), ExtResource("13_food")])

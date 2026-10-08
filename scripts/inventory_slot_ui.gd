@@ -1,6 +1,8 @@
 class_name InventorySlotUI
 extends PanelContainer
 
+signal slot_use_requested(slot_index: int)
+
 signal slot_pressed(slot_index: int, mouse_button: MouseButton)
 signal slot_hovered(slot_index: int, entered: bool)
 

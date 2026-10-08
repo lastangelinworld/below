@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://ba3gx41fo8myk"]
+[gd_scene format=3 uid="uid://bnffsd0aalnba"]
 
 [ext_resource type="Script" uid="uid://w2osemnf2uba" path="res://scripts/player.gd" id="1_abrql"]
 [ext_resource type="Script" uid="uid://3qxqhdjdwyge" path="res://scripts/item_data.gd" id="2_50fht"]
@@ -25,6 +25,9 @@
 [ext_resource type="Texture2D" uid="uid://64pvs42jyr66" path="res://Texture/FrontThigh.png" id="15_3wlsy"]
 [ext_resource type="Texture2D" uid="uid://dt0ui3dmq3ewv" path="res://Texture/FrontShin.png" id="16_b2kln"]
 [ext_resource type="Texture2D" uid="uid://c2oo6sjomhs51" path="res://Texture/FrontFoot.png" id="17_we0b7"]
+[ext_resource type="Resource" path="res://data/items/raw_meat_item.tres" id="31_raw_meat"]
+[ext_resource type="Resource" path="res://data/items/cooked_meat_item.tres" id="32_cooked_meat"]
+[ext_resource type="Resource" path="res://data/items/coal_item.tres" id="33_coal"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_urcp4"]
 radius = 12.0
@@ -694,7 +697,7 @@ _data = {
 [node name="Player" type="CharacterBody2D" unique_id=1776581139]
 script = ExtResource("1_abrql")
 arm_aim_offset_degrees = 5.0
-item_catalog = Array[ExtResource("2_50fht")]([ExtResource("3_wuv6x"), ExtResource("4_qpopc"), ExtResource("5_wq0jh"), ExtResource("6_gt4e4"), ExtResource("7_24ehl"), ExtResource("8_bwdx1"), ExtResource("9_vewsg"), ExtResource("10_2soq1")])
+item_catalog = Array[ExtResource("2_50fht")]([ExtResource("3_wuv6x"), ExtResource("4_qpopc"), ExtResource("5_wq0jh"), ExtResource("6_gt4e4"), ExtResource("7_24ehl"), ExtResource("8_bwdx1"), ExtResource("9_vewsg"), ExtResource("10_2soq1"), ExtResource("31_raw_meat"), ExtResource("32_cooked_meat"), ExtResource("33_coal")])
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1455542820]
 position = Vector2(1, 4)

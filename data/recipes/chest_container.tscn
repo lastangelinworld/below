@@ -1,11 +1,42 @@
 [gd_scene format=3 uid="uid://b3vh1hsnj2exj"]
 
-[node name="Node2D" type="Node2D" unique_id=1858830776]
+[ext_resource type="Script" uid="uid://cr7gcmp1y66oe" path="res://scripts/chest_container.gd" id="1_chest"]
 
-[node name="ChestContainer" type="StaticBody2D" parent="." unique_id=897262947]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_chest"]
+size = Vector2(32, 28)
 
-[node name="Sprite2D" type="Sprite2D" parent="ChestContainer" unique_id=159146918]
+[node name="ChestContainer" type="StaticBody2D" unique_id=1066114201]
+script = ExtResource("1_chest")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="ChestContainer" unique_id=619905581]
+[node name="Placeholder" type="Node2D" parent="." unique_id=1800145479]
 
-[node name="InteractionArea" type="Area2D" parent="ChestContainer" unique_id=1866960675]
+[node name="Body" type="Polygon2D" parent="Placeholder" unique_id=314329467]
+color = Color(0.25, 0.12, 0.06, 1)
+polygon = PackedVector2Array(-16, -28, 16, -28, 16, 0, -16, 0)
+
+[node name="Front" type="Polygon2D" parent="Placeholder" unique_id=105691650]
+color = Color(0.55, 0.29, 0.12, 1)
+polygon = PackedVector2Array(-14, -17, 14, -17, 14, -2, -14, -2)
+
+[node name="Lid" type="Polygon2D" parent="Placeholder" unique_id=975853828]
+color = Color(0.7, 0.4, 0.18, 1)
+polygon = PackedVector2Array(-14, -26, 14, -26, 14, -19, -14, -19)
+
+[node name="LeftBand" type="Polygon2D" parent="Placeholder" unique_id=176201649]
+color = Color(0.2, 0.21, 0.24, 1)
+polygon = PackedVector2Array(-11, -26, -8, -26, -8, -2, -11, -2)
+
+[node name="RightBand" type="Polygon2D" parent="Placeholder" unique_id=431263311]
+color = Color(0.2, 0.21, 0.24, 1)
+polygon = PackedVector2Array(8, -26, 11, -26, 11, -2, 8, -2)
+
+[node name="Lock" type="Polygon2D" parent="Placeholder" unique_id=722022087]
+color = Color(0.9, 0.68, 0.22, 1)
+polygon = PackedVector2Array(-3, -21, 3, -21, 3, -13, -3, -13)
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=601917134]
+position = Vector2(0, -14)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1350627660]
+position = Vector2(0, -14)
+shape = SubResource("RectangleShape2D_chest")

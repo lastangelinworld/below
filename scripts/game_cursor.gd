@@ -67,10 +67,22 @@ func _looks_like_chest(collider: Object, world_pos: Vector2) -> bool:
 		var data := layer.get_cell_tile_data(cell)
 		if data != null:
 			for key in [&"block_id", &"block_type", &"id", &"name", &"interaction"]:
-				var value = data.get_custom_data(key)
+				var value = _safe_custom_data(data, key)
 				if "chest" in str(value).to_lower() or "сундук" in str(value).to_lower():
 					return true
 	return false
+
+func _safe_custom_data(
+	tile_data: TileData,
+	layer_name: String
+) -> Variant:
+	if tile_data == null:
+		return null
+
+	if not tile_data.has_custom_data(layer_name):
+		return null
+
+	return tile_data.get_custom_data(layer_name)
 
 func _apply(mode: Mode) -> void:
 	_mode = mode
