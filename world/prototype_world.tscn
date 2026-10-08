@@ -11,7 +11,7 @@
 [ext_resource type="Resource" uid="uid://ceo5kt37csbnh" path="res://data/blocks/spikes.tres" id="5_spikes"]
 [ext_resource type="Resource" uid="uid://cekggxoxms6p2" path="res://data/blocks/web.tres" id="5_web"]
 [ext_resource type="Script" uid="uid://hfouyjrcxpbr" path="res://scripts/block_cursor.gd" id="8_7dvjn"]
-[ext_resource type="PackedScene" path="res://inventory_ui.tscn" id="9_7dvjn"]
+[ext_resource type="PackedScene" uid="uid://cue5crtcfc7hp" path="res://inventory_ui.tscn" id="9_7dvjn"]
 [ext_resource type="Texture2D" uid="uid://dxi53pr5yxx64" path="res://Texture/chad_612aa3a71cab4f318333f27cd6dbf1c9.png" id="11_laxd4"]
 [ext_resource type="PackedScene" path="res://data/items/item_pickup.tscn" id="11_rvp8y"]
 [ext_resource type="Script" uid="uid://b5tvyi618jjay" path="res://scripts/hud.gd" id="13_hf8yv"]
@@ -67,6 +67,7 @@ debug_label = NodePath("../../UI/DebugInterface/TargetDebugLabel")
 
 [node name="CampfirePlacement" type="Node" parent="." unique_id=1207010454]
 script = ExtResource("14_campfire_placement")
+chest_scene = ExtResource("19_jvuuw")
 
 [node name="Player" parent="." unique_id=1776581139 node_paths=PackedStringArray("terrain") instance=ExtResource("1_tu1po")]
 position = Vector2(-18, 120)

@@ -5,6 +5,14 @@ extends CanvasLayer
 @export var slot_scene: PackedScene
 @export var pickup_scene: PackedScene = preload("res://data/items/item_pickup.tscn")
 
+@export_group("Crafting")
+## Назначьте сюда ресурсы рецептов campfire.tres и chest.tres.
+## Первый совпавший рецепт определяет результат.
+@export var crafting_recipes: Array[CraftingRecipe] = []
+## Дополнительные предметы для регистрации. Назначьте chest_item.tres,
+## если предмет сундука ещё не добавлен в ItemRegistry.
+@export var crafting_items: Array[ItemData] = []
+
 @onready var overlay: Control = $Overlay
 @onready var inventory_window: Control = $Overlay/Center/InventoryWindow
 @onready var main_grid: GridContainer = $Overlay/Center/InventoryWindow/Margin/Main/Content/PlayerColumn/MainInventoryGrid
@@ -116,6 +124,10 @@ func _connect_player() -> void:
 		return
 	if not inventory.changed.is_connected(_refresh_all):
 		inventory.changed.connect(_refresh_all)
+	# Подключение отложено до завершения _ready() остальных узлов,
+	# чтобы стартовая регистрация ItemRegistry не зависела от порядка сцены.
+	ItemRegistry.register_items(crafting_items)
+	_validate_crafting_setup()
 	player.set_meta("selected_hotbar_index", selected_hotbar)
 	_build_views()
 	_refresh_all()
@@ -246,64 +258,70 @@ func _clear_if_empty(stack: ItemStack) -> void:
 		stack.item_id = &""
 		stack.amount = 0
 
-func _get_craft_result_id() -> StringName:
-	# Существующий рецепт костра.
-	var fire_pattern: Array[StringName] = [
-		&"", &"flint", &"",
-		&"plank_scraps", &"plank_scraps", &"plank_scraps",
-		&"", &"flint", &""
-	]
-
-	var fire_matches: bool = true
-
-	for i in range(9):
-		var actual: StringName = (
-			&"" if craft_slots[i].is_empty()
-			else craft_slots[i].item_id
+func _validate_crafting_setup() -> void:
+	if crafting_recipes.is_empty():
+		push_warning(
+			"InventoryUI: Crafting Recipes пуст. Назначьте рецепты костра и сундука в Inspector."
 		)
+		return
 
-		if actual != fire_pattern[i]:
-			fire_matches = false
-			break
-
-	if fire_matches:
-		return &"campfire"
-
-	# Сундук: квадрат 2 × 2 из деревянных обломков.
-	# Квадрат можно разместить в любом углу сетки 3 × 3.
-	var chest_patterns: Array = [
-		[0, 1, 3, 4],
-		[1, 2, 4, 5],
-		[3, 4, 6, 7],
-		[4, 5, 7, 8]
-	]
-
-	for occupied_slots in chest_patterns:
-		var chest_matches: bool = true
-
-		for i in range(9):
-			var expected: StringName = (
-				&"plank_scraps" if occupied_slots.has(i)
-				else &""
+	for recipe: CraftingRecipe in crafting_recipes:
+		if recipe == null:
+			push_warning("InventoryUI: пустой элемент в Crafting Recipes.")
+			continue
+		if not _is_valid_crafting_recipe(recipe):
+			push_warning(
+				"InventoryUI: некорректный рецепт: %s" % str(recipe.recipe_id)
+			)
+			continue
+		var item: ItemData = ItemRegistry.get_item(recipe.output_item_id)
+		if item == null:
+			push_warning(
+				"InventoryUI: не зарегистрирован результат крафта: %s. Добавьте его ItemData в ItemRegistry или Crafting Items."
+				% str(recipe.output_item_id)
+			)
+		elif recipe.output_amount > item.max_stack:
+			push_warning(
+				"InventoryUI: результат рецепта %s превышает максимальный размер стака."
+				% str(recipe.recipe_id)
 			)
 
-			var actual: StringName = (
-				&"" if craft_slots[i].is_empty()
-				else craft_slots[i].item_id
-			)
 
-			if actual != expected:
-				chest_matches = false
-				break
+func _is_valid_crafting_recipe(recipe: CraftingRecipe) -> bool:
+	if recipe == null or recipe.pattern.size() != 9:
+		return false
+	if recipe.output_item_id == &"" or recipe.output_amount <= 0:
+		return false
 
-		if chest_matches:
-			return &"chest"
+	# Пустой рецепт не должен позволять создавать предметы без ингредиентов.
+	for ingredient_id: StringName in recipe.pattern:
+		if ingredient_id != &"":
+			return true
+	return false
 
-	return &""
+
+func _get_matching_recipe() -> CraftingRecipe:
+	for recipe: CraftingRecipe in crafting_recipes:
+		if not _is_valid_crafting_recipe(recipe):
+			continue
+		if not recipe.matches(craft_slots):
+			continue
+
+		var item: ItemData = ItemRegistry.get_item(recipe.output_item_id)
+		if item == null or recipe.output_amount > item.max_stack:
+			continue
+		return recipe
+	return null
+
+
+# Сохранены вспомогательные методы прежней версии интерфейса.
+func _get_craft_result_id() -> StringName:
+	var recipe: CraftingRecipe = _get_matching_recipe()
+	return recipe.output_item_id if recipe != null else &""
 
 
 func _recipe_matches() -> bool:
-	return _get_craft_result_id() != &""
+	return _get_matching_recipe() != null
 
 
 func _refresh_craft() -> void:
@@ -311,11 +329,10 @@ func _refresh_craft() -> void:
 		craft_views[i].display_stack(craft_slots[i])
 
 	var output := ItemStack.new()
-	var result_id: StringName = _get_craft_result_id()
-
-	if result_id != &"":
-		output.item_id = result_id
-		output.amount = 1
+	var recipe: CraftingRecipe = _get_matching_recipe()
+	if recipe != null:
+		output.item_id = recipe.output_item_id
+		output.amount = recipe.output_amount
 
 	if result_view != null:
 		result_view.display_stack(output)
@@ -325,40 +342,42 @@ func _on_result_pressed(_index: int, button: MouseButton) -> void:
 	if button != MOUSE_BUTTON_LEFT:
 		return
 
-	var result_id: StringName = _get_craft_result_id()
-
-	if result_id == &"":
+	# Проверяем рецепт заново непосредственно при нажатии,
+	# а не используем ранее показанный результат.
+	var recipe: CraftingRecipe = _get_matching_recipe()
+	if recipe == null:
 		return
 
+	var result_id: StringName = recipe.output_item_id
+	var result_amount: int = recipe.output_amount
 	var item: ItemData = ItemRegistry.get_item(result_id)
-
 	if item == null:
-		push_warning(
-			"Не зарегистрирован результат крафта: %s" % str(result_id)
-		)
 		return
 
+	var carried_amount: int = 0
 	if not carried.is_empty():
 		if carried.item_id != result_id:
 			return
+		carried_amount = carried.amount
 
-		if carried.amount >= item.max_stack:
-			return
+	# Результат выдаётся целиком. Если на указателе нет места,
+	# ингредиенты остаются нетронутыми.
+	if carried_amount + result_amount > item.max_stack:
+		return
 
-	if carried.is_empty():
-		carried.item_id = result_id
-		carried.amount = 1
-	else:
-		carried.amount += 1
+	# Все проверки закончены: расходуем по одной единице
+	# из каждой непустой ячейки рисунка рецепта.
+	for i in range(recipe.pattern.size()):
+		if recipe.pattern[i] == &"":
+			continue
+		var stack: ItemStack = craft_slots[i]
+		stack.amount -= 1
+		_clear_if_empty(stack)
 
-	# Для обоих рецептов расходуется по одной единице
-	# из каждой занятой ячейки.
-	for stack in craft_slots:
-		if not stack.is_empty():
-			stack.amount -= 1
-			_clear_if_empty(stack)
-
+	carried.item_id = result_id
+	carried.amount = carried_amount + result_amount
 	_refresh_all()
+
 
 func _refresh_carried() -> void:
 	if carried.is_empty():

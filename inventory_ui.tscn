@@ -1,8 +1,13 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene format=3 uid="uid://cue5crtcfc7hp"]
 
-[ext_resource type="Script" path="res://scripts/inventory_ui.gd" id="1"]
+[ext_resource type="Script" uid="uid://diwrhgerljut1" path="res://scripts/inventory_ui.gd" id="1"]
 [ext_resource type="PackedScene" path="res://ui/inventory/inventory_slot_ui.tscn" id="2"]
-[ext_resource type="PackedScene" path="res://data/items/item_pickup.tscn" id="3"]
+[ext_resource type="Script" uid="uid://dmwkhfh53qwo0" path="res://scripts/crafting_recipe.gd" id="3_o6um4"]
+[ext_resource type="Resource" uid="uid://dp4udl0uwu4wv" path="res://data/recipes/campfire.tres" id="4_m5yu5"]
+[ext_resource type="Resource" path="res://data/recipes/chest.tres" id="5_bbtsg"]
+[ext_resource type="Script" uid="uid://3qxqhdjdwyge" path="res://scripts/item_data.gd" id="6_f4u5k"]
+[ext_resource type="Resource" uid="uid://ch58f70hs1thy" path="res://data/items/chest_item.tres" id="7_yjakb"]
+
 [sub_resource type="StyleBoxFlat" id="window"]
 bg_color = Color(0.055, 0.065, 0.08, 0.98)
 border_width_left = 3
@@ -14,17 +19,7 @@ corner_radius_top_left = 9
 corner_radius_top_right = 9
 corner_radius_bottom_right = 9
 corner_radius_bottom_left = 9
-[sub_resource type="StyleBoxFlat" id="hud"]
-bg_color = Color(0.04, 0.05, 0.065, 0.9)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.3, 0.35, 0.42, 1)
-corner_radius_top_left = 7
-corner_radius_top_right = 7
-corner_radius_bottom_right = 7
-corner_radius_bottom_left = 7
+
 [sub_resource type="StyleBoxFlat" id="bar_bg"]
 bg_color = Color(0.08, 0.09, 0.11, 1)
 border_width_left = 1
@@ -36,12 +31,26 @@ corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
+
 [sub_resource type="StyleBoxFlat" id="bar_fill"]
 bg_color = Color(0.24, 0.68, 0.42, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="hud"]
+bg_color = Color(0.04, 0.05, 0.065, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.3, 0.35, 0.42, 1)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+
 [sub_resource type="StyleBoxFlat" id="carry"]
 bg_color = Color(0.04, 0.05, 0.07, 0.9)
 border_width_left = 1
@@ -54,112 +63,137 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[node name="InventoryUI" type="CanvasLayer"]
+[node name="InventoryUI" type="CanvasLayer" unique_id=1045204087]
 layer = 20
 script = ExtResource("1")
 slot_scene = ExtResource("2")
-pickup_scene = ExtResource("3")
+crafting_recipes = Array[ExtResource("3_o6um4")]([ExtResource("4_m5yu5"), ExtResource("5_bbtsg")])
+crafting_items = Array[ExtResource("6_f4u5k")]([ExtResource("7_yjakb")])
 
-[node name="Overlay" type="ColorRect" parent="."]
+[node name="Overlay" type="ColorRect" parent="." unique_id=1847642008]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-mouse_filter = 0
 color = Color(0, 0, 0, 0.58)
-[node name="Center" type="CenterContainer" parent="Overlay"]
+
+[node name="Center" type="CenterContainer" parent="Overlay" unique_id=365215301]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-mouse_filter = 1
-[node name="InventoryWindow" type="PanelContainer" parent="Overlay/Center"]
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="InventoryWindow" type="PanelContainer" parent="Overlay/Center" unique_id=1814009255]
 custom_minimum_size = Vector2(890, 570)
 layout_mode = 2
 theme_override_styles/panel = SubResource("window")
-[node name="Margin" type="MarginContainer" parent="Overlay/Center/InventoryWindow"]
+
+[node name="Margin" type="MarginContainer" parent="Overlay/Center/InventoryWindow" unique_id=1387124505]
 layout_mode = 2
 theme_override_constants/margin_left = 22
 theme_override_constants/margin_top = 18
 theme_override_constants/margin_right = 22
 theme_override_constants/margin_bottom = 18
-[node name="Main" type="VBoxContainer" parent="Overlay/Center/InventoryWindow/Margin"]
+
+[node name="Main" type="VBoxContainer" parent="Overlay/Center/InventoryWindow/Margin" unique_id=546681047]
 layout_mode = 2
 theme_override_constants/separation = 9
-[node name="Title" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main"]
+
+[node name="Title" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main" unique_id=1199269582]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "ИНВЕНТАРЬ"
 horizontal_alignment = 1
-[node name="Content" type="HBoxContainer" parent="Overlay/Center/InventoryWindow/Margin/Main"]
+
+[node name="Content" type="HBoxContainer" parent="Overlay/Center/InventoryWindow/Margin/Main" unique_id=362461122]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 28
-[node name="PlayerColumn" type="VBoxContainer" parent="Overlay/Center/InventoryWindow/Margin/Main/Content"]
+
+[node name="PlayerColumn" type="VBoxContainer" parent="Overlay/Center/InventoryWindow/Margin/Main/Content" unique_id=1634480084]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 6
-[node name="BackpackLabel" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/PlayerColumn"]
+
+[node name="BackpackLabel" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/PlayerColumn" unique_id=1866376868]
 layout_mode = 2
 text = "РЮКЗАК"
-[node name="MainInventoryGrid" type="GridContainer" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/PlayerColumn"]
+
+[node name="MainInventoryGrid" type="GridContainer" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/PlayerColumn" unique_id=35258524]
 layout_mode = 2
-columns = 9
 theme_override_constants/h_separation = 4
 theme_override_constants/v_separation = 4
-[node name="HotbarLabel" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/PlayerColumn"]
+columns = 9
+
+[node name="HotbarLabel" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/PlayerColumn" unique_id=1499431437]
 layout_mode = 2
 text = "ПАНЕЛЬ БЫСТРОГО ДОСТУПА"
-[node name="InventoryHotbarGrid" type="GridContainer" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/PlayerColumn"]
+
+[node name="InventoryHotbarGrid" type="GridContainer" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/PlayerColumn" unique_id=1264753160]
 layout_mode = 2
-columns = 9
 theme_override_constants/h_separation = 4
-[node name="CraftColumn" type="VBoxContainer" parent="Overlay/Center/InventoryWindow/Margin/Main/Content"]
-layout_mode = 2
+columns = 9
+
+[node name="CraftColumn" type="VBoxContainer" parent="Overlay/Center/InventoryWindow/Margin/Main/Content" unique_id=1531646778]
 custom_minimum_size = Vector2(250, 0)
+layout_mode = 2
 theme_override_constants/separation = 12
-[node name="CraftLabel" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/CraftColumn"]
+
+[node name="CraftLabel" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/CraftColumn" unique_id=1518584667]
 layout_mode = 2
 text = "КРАФТ 3 × 3"
 horizontal_alignment = 1
-[node name="CraftRow" type="HBoxContainer" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/CraftColumn"]
+
+[node name="CraftRow" type="HBoxContainer" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/CraftColumn" unique_id=798003455]
 layout_mode = 2
-alignment = 1
 theme_override_constants/separation = 14
-[node name="CraftGrid" type="GridContainer" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/CraftColumn/CraftRow"]
+alignment = 1
+
+[node name="CraftGrid" type="GridContainer" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/CraftColumn/CraftRow" unique_id=246899050]
 layout_mode = 2
-columns = 3
 theme_override_constants/h_separation = 4
 theme_override_constants/v_separation = 4
-[node name="Arrow" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/CraftColumn/CraftRow"]
+columns = 3
+
+[node name="Arrow" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/CraftColumn/CraftRow" unique_id=876449407]
 layout_mode = 2
 theme_override_font_sizes/font_size = 25
 text = "→"
 vertical_alignment = 1
-[node name="ResultHolder" type="CenterContainer" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/CraftColumn/CraftRow"]
-layout_mode = 2
+
+[node name="ResultHolder" type="CenterContainer" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/CraftColumn/CraftRow" unique_id=2041972041]
 custom_minimum_size = Vector2(58, 58)
-[node name="Recipe" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/CraftColumn"]
 layout_mode = 2
-text = "Костёр:\n  кремень\nдоски ×3\n  кремень"
+
+[node name="Recipe" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/CraftColumn" unique_id=443241158]
+layout_mode = 2
+text = "Костёр:
+  кремень
+доски ×3
+  кремень"
 horizontal_alignment = 1
-[node name="WeightBar" type="ProgressBar" parent="Overlay/Center/InventoryWindow/Margin/Main"]
+
+[node name="WeightBar" type="ProgressBar" parent="Overlay/Center/InventoryWindow/Margin/Main" unique_id=17445097]
 custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
-max_value = 300.0
-show_percentage = false
 theme_override_styles/background = SubResource("bar_bg")
 theme_override_styles/fill = SubResource("bar_fill")
-[node name="WeightLabel" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main"]
+max_value = 300.0
+show_percentage = false
+
+[node name="WeightLabel" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main" unique_id=1634694215]
 layout_mode = 2
 text = "Вес: 0.00 / 300.00 кг"
 horizontal_alignment = 1
-[node name="Hint" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main"]
+
+[node name="Hint" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main" unique_id=1966143171]
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
 text = "ЛКМ — стак • ПКМ — половина/1 шт. • Q — выбросить • Tab/Esc — закрыть"
 horizontal_alignment = 1
 
-[node name="HotbarHUD" type="PanelContainer" parent="."]
+[node name="HotbarHUD" type="PanelContainer" parent="." unique_id=1382170790]
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
@@ -171,42 +205,50 @@ offset_right = 270.0
 offset_bottom = -12.0
 mouse_filter = 1
 theme_override_styles/panel = SubResource("hud")
-[node name="Margin" type="MarginContainer" parent="HotbarHUD"]
+
+[node name="Margin" type="MarginContainer" parent="HotbarHUD" unique_id=2018980473]
 layout_mode = 2
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 5
-[node name="VBox" type="VBoxContainer" parent="HotbarHUD/Margin"]
+
+[node name="VBox" type="VBoxContainer" parent="HotbarHUD/Margin" unique_id=1665939552]
 layout_mode = 2
 theme_override_constants/separation = 2
-[node name="HotbarGrid" type="GridContainer" parent="HotbarHUD/Margin/VBox"]
+
+[node name="HotbarGrid" type="GridContainer" parent="HotbarHUD/Margin/VBox" unique_id=560016482]
 layout_mode = 2
-columns = 9
 theme_override_constants/h_separation = 4
-[node name="SelectedLabel" type="Label" parent="HotbarHUD/Margin/VBox"]
+columns = 9
+
+[node name="SelectedLabel" type="Label" parent="HotbarHUD/Margin/VBox" unique_id=922652539]
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "1 — пусто"
 horizontal_alignment = 1
 
-[node name="CarryPreview" type="Control" parent="."]
+[node name="CarryPreview" type="Control" parent="." unique_id=560722237]
 custom_minimum_size = Vector2(56, 56)
+layout_mode = 3
+anchors_preset = 0
 mouse_filter = 2
-[node name="Panel" type="PanelContainer" parent="CarryPreview"]
+
+[node name="Panel" type="PanelContainer" parent="CarryPreview" unique_id=676223263]
 layout_mode = 0
 offset_right = 56.0
 offset_bottom = 56.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("carry")
-[node name="Icon" type="TextureRect" parent="CarryPreview/Panel"]
+
+[node name="Icon" type="TextureRect" parent="CarryPreview/Panel" unique_id=214244979]
 layout_mode = 2
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
-[node name="Amount" type="Label" parent="CarryPreview/Panel"]
+
+[node name="Amount" type="Label" parent="CarryPreview/Panel" unique_id=2004779958]
 layout_mode = 2
-mouse_filter = 2
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 17

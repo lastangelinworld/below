@@ -1,51 +1,47 @@
 extends Node
 
 
-const CAMPFIRE_SCENE := preload(
+const CAMPFIRE_SCENE: PackedScene = preload(
 	"res://data/world/campfire.tscn"
 )
 
-const INVALID_CELL: Vector2i = Vector2i(
-	2147483647,
-	2147483647
-)
-
-## Текстура-основание костра для полупрозрачного превью.
-const PREVIEW_BASE_TEXTURE := preload(
+const PREVIEW_BASE_TEXTURE: Texture2D = preload(
 	"res://assets/campfire/0.png"
 )
 
 
 @export_group("Placement")
 
+## Назначь сюда chest_container.tscn через Inspector.
+@export var chest_scene: PackedScene
+
 ## Максимальная дальность установки от ног персонажа.
 @export var maximum_distance: float = 96.0
 
 ## Смещение от центра персонажа к его ногам.
-@export var player_feet_offset: Vector2 = Vector2(
-	0.0,
-	14.0
-)
+@export var player_feet_offset: Vector2 = Vector2(0.0, 14.0)
 
-## Слой физических коллизий занятых объектов.
+## Физические слои, которые запрещают размещение.
 @export_flags_2d_physics var placement_collision_mask: int = 1
 
-## Цвет проекции, когда костёр можно поставить.
-@export var preview_allowed_color: Color = Color(0.35, 1.0, 0.4, 0.55)
+## Цвет допустимой установки.
+@export var preview_allowed_color: Color = Color(
+	0.35, 1.0, 0.4, 0.55
+)
 
-## Цвет проекции, когда поставить нельзя.
-@export var preview_blocked_color: Color = Color(1.0, 0.3, 0.3, 0.5)
+## Цвет запрещённой установки.
+@export var preview_blocked_color: Color = Color(
+	1.0, 0.3, 0.3, 0.5
+)
 
 
 var _terrain: TerrainLayer
-
-## Полупрозрачный призрак будущего костра.
-var _preview: Sprite2D
+var _preview: Node2D
+var _preview_item_id: StringName = &""
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-
 	_terrain = _find_terrain()
 
 	if _terrain == null:
@@ -54,134 +50,46 @@ func _ready() -> void:
 		)
 
 
+func _exit_tree() -> void:
+	_clear_preview()
+
+
 func _process(_delta: float) -> void:
-	# Проекция видна, пока костёр в руке: зелёная — можно, красная — нельзя.
 	if get_tree().paused:
 		_hide_preview()
 		return
 
-	if not _selected_is_campfire():
-		_hide_preview()
-		return
-
-	if _terrain == null or not is_instance_valid(_terrain):
-		_terrain = _find_terrain()
-
-	if _terrain == null:
-		_hide_preview()
-		return
-
 	var player: Node2D = _find_player()
 
 	if player == null:
 		_hide_preview()
 		return
 
-	var viewport: Viewport = get_viewport()
+	var item_id: StringName = _get_selected_placeable_id(player)
 
-	var mouse_world_position: Vector2 = (
-		viewport.get_canvas_transform().affine_inverse()
-		* viewport.get_mouse_position()
-	)
+	if item_id == &"":
+		_hide_preview()
+		return
 
-	var placement_cell: Vector2i = (
-		_terrain.global_position_to_cell(
-			mouse_world_position
-		)
-	)
+	if _get_scene_for_item(item_id) == null:
+		_hide_preview()
+		return
 
-	var placement_position: Vector2 = (
-		_terrain.get_cell_global_center(
-			placement_cell
-		)
-	)
+	if not _ensure_terrain():
+		_hide_preview()
+		return
 
-	var is_allowed: bool = _is_cell_valid_for_placement(
-		placement_cell,
+	var cell: Vector2i = _get_mouse_cell()
+	var allowed: bool = _is_cell_valid_for_placement(
+		cell,
 		player
 	)
 
 	_show_preview(
-		placement_position,
-		preview_allowed_color if is_allowed else preview_blocked_color
+		item_id,
+		_get_structure_position(cell, item_id),
+		preview_allowed_color if allowed else preview_blocked_color
 	)
-
-
-## Возвращает true, если в выбранном слоте панели лежит костёр.
-func _selected_is_campfire() -> bool:
-	var player: Node2D = _find_player()
-
-	if player == null:
-		return false
-
-	var inventory = player.get("inventory")
-
-	if inventory == null:
-		return false
-
-	var selected_hotbar_index: int = clampi(
-		int(
-			player.get_meta(
-				"selected_hotbar_index",
-				0
-			)
-		),
-		0,
-		8
-	)
-
-	var selected_stack = inventory.get_slot(
-		27 + selected_hotbar_index
-	)
-
-	if selected_stack == null:
-		return false
-
-	if selected_stack.is_empty():
-		return false
-
-	return selected_stack.item_id == &"campfire"
-
-
-func _ensure_preview() -> void:
-	if _preview != null and is_instance_valid(_preview):
-		return
-
-	_preview = Sprite2D.new()
-	_preview.texture = PREVIEW_BASE_TEXTURE
-	_preview.scale = Vector2(0.5, 0.5)
-	_preview.z_index = 100
-	_preview.visible = false
-
-	var world: Node = get_tree().current_scene
-
-	if world != null:
-		world.add_child(_preview)
-
-
-func _show_preview(
-	world_position: Vector2,
-	preview_color: Color
-) -> void:
-	_ensure_preview()
-
-	if _preview == null or not is_instance_valid(_preview):
-		return
-
-	if _preview.get_parent() == null:
-		var world: Node = get_tree().current_scene
-
-		if world != null:
-			world.add_child(_preview)
-
-	_preview.global_position = world_position
-	_preview.modulate = preview_color
-	_preview.visible = true
-
-
-func _hide_preview() -> void:
-	if _preview != null and is_instance_valid(_preview):
-		_preview.visible = false
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -191,125 +99,205 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not event.is_action_pressed("secondary_action"):
 		return
 
+	if event.is_echo():
+		return
+
 	var player: Node2D = _find_player()
 
 	if player == null:
-		push_warning(
-			"CampfirePlacement: игрок не найден."
-		)
 		return
 
-	var inventory = player.get("inventory")
+	var inventory: Variant = player.get("inventory")
 
 	if inventory == null:
+		return
+
+	var slot_index: int = _get_selected_slot_index(player)
+	var stack: Variant = inventory.get_slot(slot_index)
+
+	if stack == null:
+		return
+
+	if stack.is_empty():
+		return
+
+	var item_id: StringName = stack.item_id
+
+	if item_id != &"campfire" and item_id != &"chest":
+		return
+
+	# Выбран устанавливаемый предмет.
+	# Даже неудачная установка не должна передавать это
+	# нажатие другим обработчикам _unhandled_input.
+	get_viewport().set_input_as_handled()
+
+	var scene: PackedScene = _get_scene_for_item(item_id)
+
+	if scene == null:
 		push_warning(
-			"CampfirePlacement: у игрока не найден InventoryData."
+			"CampfirePlacement: назначь Chest Scene в Inspector."
 		)
 		return
 
-	var selected_hotbar_index: int = clampi(
-		int(
-			player.get_meta(
-				"selected_hotbar_index",
-				0
-			)
-		),
-		0,
-		8
-	)
-
-	# Слоты панели быстрого доступа: 27–35.
-	var inventory_slot_index: int = (
-		27 + selected_hotbar_index
-	)
-
-	var selected_stack = inventory.get_slot(
-		inventory_slot_index
-	)
-
-	if selected_stack == null:
+	if not _ensure_terrain():
 		return
 
-	if selected_stack.is_empty():
-		return
+	var cell: Vector2i = _get_mouse_cell()
 
-	if selected_stack.item_id != &"campfire":
-		return
-
-	if _terrain == null or not is_instance_valid(_terrain):
-		_terrain = _find_terrain()
-
-	if _terrain == null:
-		return
-
-	var viewport: Viewport = get_viewport()
-
-	var mouse_world_position: Vector2 = (
-		viewport.get_canvas_transform().affine_inverse()
-		* viewport.get_mouse_position()
-	)
-
-	var placement_cell: Vector2i = (
-		_terrain.global_position_to_cell(
-			mouse_world_position
-		)
-	)
-
-	# Ставим только туда, где проекция зелёная.
-	if not _is_cell_valid_for_placement(
-		placement_cell,
-		player
-	):
-		return
-
-	var placement_position: Vector2 = (
-		_terrain.get_cell_global_center(
-			placement_cell
-		)
-	)
-
-	var campfire: Node = CAMPFIRE_SCENE.instantiate()
-
-	if campfire == null:
-		push_error(
-			"CampfirePlacement: не удалось создать campfire.tscn."
-		)
+	# Та же проверка используется для цвета проекции.
+	if not _is_cell_valid_for_placement(cell, player):
 		return
 
 	var world: Node = get_tree().current_scene
 
 	if world == null:
+		return
+
+	var instance: Node = scene.instantiate()
+
+	if not instance is Node2D:
+		instance.free()
 		push_error(
-			"CampfirePlacement: отсутствует текущая игровая сцена."
+			"CampfirePlacement: корень сцены должен быть Node2D."
 		)
 		return
 
-	world.add_child(campfire)
-
-	if campfire is Node2D:
-		var campfire_2d: Node2D = campfire as Node2D
-		campfire_2d.global_position = placement_position
-
-	inventory.remove_from_slot(
-		inventory_slot_index,
-		1
+	var structure: Node2D = instance as Node2D
+	var world_position: Vector2 = _get_structure_position(
+		cell,
+		item_id
 	)
 
-	viewport.set_input_as_handled()
+	# Сохраняем занятую клетку отдельно от позиции корня.
+	# У сундука корень находится на нижней границе клетки.
+	structure.set_meta("placement_cell", cell)
+	structure.set_meta("placement_item_id", item_id)
+	structure.add_to_group("placeable_structure")
+
+	if item_id == &"chest":
+		structure.add_to_group("chest")
+	else:
+		structure.add_to_group("campfire")
+
+	# Задаём позицию до _ready() создаваемого объекта.
+	if world is Node2D:
+		structure.position = (
+			(world as Node2D).to_local(world_position)
+		)
+	else:
+		structure.position = world_position
+
+	world.add_child(structure)
+
+	# Расходуем предмет только после создания объекта.
+	inventory.remove_from_slot(slot_index, 1)
+
+	_hide_preview()
 
 
-## Проверяет, можно ли поставить костёр в конкретную клетку.
+func _get_selected_slot_index(player: Node2D) -> int:
+	var hotbar_index: int = clampi(
+		int(player.get_meta("selected_hotbar_index", 0)),
+		0,
+		8
+	)
+
+	# Слоты панели быстрого доступа: 27–35.
+	return 27 + hotbar_index
+
+
+func _get_selected_placeable_id(
+	player: Node2D
+) -> StringName:
+	var inventory: Variant = player.get("inventory")
+
+	if inventory == null:
+		return &""
+
+	var stack: Variant = inventory.get_slot(
+		_get_selected_slot_index(player)
+	)
+
+	if stack == null:
+		return &""
+
+	if stack.is_empty():
+		return &""
+
+	var item_id: StringName = stack.item_id
+
+	if item_id == &"campfire" or item_id == &"chest":
+		return item_id
+
+	return &""
+
+
+func _get_scene_for_item(
+	item_id: StringName
+) -> PackedScene:
+	match item_id:
+		&"campfire":
+			return CAMPFIRE_SCENE
+		&"chest":
+			return chest_scene
+
+	return null
+
+
+func _ensure_terrain() -> bool:
+	if _terrain == null or not is_instance_valid(_terrain):
+		_terrain = _find_terrain()
+
+	return _terrain != null
+
+
+func _get_mouse_cell() -> Vector2i:
+	var viewport: Viewport = get_viewport()
+	var mouse_world_position: Vector2 = (
+		viewport.get_canvas_transform().affine_inverse()
+		* viewport.get_mouse_position()
+	)
+
+	return _terrain.global_position_to_cell(
+		mouse_world_position
+	)
+
+
+func _get_structure_position(
+	cell: Vector2i,
+	item_id: StringName
+) -> Vector2:
+	var center: Vector2 = _terrain.get_cell_global_center(cell)
+
+	if item_id == &"chest":
+		var below_center: Vector2 = (
+			_terrain.get_cell_global_center(
+				cell + Vector2i(0, 1)
+			)
+		)
+
+		# Для текущей сцены сундука корень — нижняя точка.
+		# Размещаем его на границе с блоком-основанием.
+		return center + (below_center - center) * 0.5
+
+	# Положение костра сохраняем прежним.
+	return center
+
+
 func _is_cell_valid_for_placement(
-	cell_coordinates: Vector2i,
+	cell: Vector2i,
 	player: Node2D
 ) -> bool:
 	if _terrain == null or player == null:
 		return false
 
-	# Под костром обязан быть блок-основание.
-	# Ось Y направлена вниз, поэтому клетка снизу — это Y + 1.
+	# Клетка размещения должна быть пустой.
+	if _terrain.has_block_at_cell(cell):
+		return false
+
+	# Под ней должен находиться блок.
 	if not _terrain.has_block_at_cell(
-		cell_coordinates + Vector2i(0, 1)
+		cell + Vector2i(0, 1)
 	):
 		return false
 
@@ -319,295 +307,323 @@ func _is_cell_valid_for_placement(
 		)
 	)
 
-	# Нельзя ставить костёр в клетку персонажа.
-	if cell_coordinates == player_cell:
+	if cell == player_cell:
 		return false
 
-	# Сама клетка должна быть свободной.
-	if not _can_place_at_cell(
-		cell_coordinates,
-		player
-	):
-		return false
-
-	var player_feet_position: Vector2 = (
+	var feet_position: Vector2 = (
 		player.global_position + player_feet_offset
 	)
 
-	var placement_position: Vector2 = (
-		_terrain.get_cell_global_center(
-			cell_coordinates
-		)
+	var cell_center: Vector2 = (
+		_terrain.get_cell_global_center(cell)
 	)
 
-	# Защита от установки слишком далеко.
-	if (
-		placement_position.distance_to(
-			player_feet_position
-		)
-		> maximum_distance
-	):
+	if cell_center.distance_to(feet_position) > maximum_distance:
+		return false
+
+	if _has_structure_at_cell(cell):
+		return false
+
+	if _has_physics_object_in_cell(cell, player):
 		return false
 
 	return true
 
 
-func _can_place_at_cell(
-	cell_coordinates: Vector2i,
-	player: Node2D
-) -> bool:
-	if _terrain == null:
-		return false
-
-	# Нельзя ставить костёр поверх блока.
-	if _terrain.has_block_at_cell(
-		cell_coordinates
-	):
-		return false
-
-	# Нельзя ставить второй объект в той же клетке.
-	if _has_structure_at_cell(
-		cell_coordinates
-	):
-		return false
-
-	var cell_position: Vector2 = (
-		_terrain.get_cell_global_center(
-			cell_coordinates
-		)
+func _is_structure(node: Node) -> bool:
+	return (
+		node is ChestContainer
+		or node is Campfire
+		or node.is_in_group("placeable_structure")
+		or node.is_in_group("storage_chest")
+		or node.is_in_group("campfire_interactable")
+		or node.is_in_group("campfire")
+		or node.is_in_group("chest")
+		or node.is_in_group("building")
 	)
 
-	# Проверка физических объектов в клетке.
-	if _has_physics_object_at_position(
-		cell_position,
-		player
-	):
-		return false
 
-	return true
-
-
-func _has_structure_at_cell(
-	cell_coordinates: Vector2i
-) -> bool:
+func _has_structure_at_cell(cell: Vector2i) -> bool:
 	var world: Node = get_tree().current_scene
 
 	if world == null or _terrain == null:
 		return false
 
-	var all_nodes: Array[Node] = world.find_children(
+	var nodes: Array[Node] = world.find_children(
 		"*",
 		"",
 		true,
 		false
 	)
 
-	for node: Node in all_nodes:
-		if not is_instance_valid(node):
-			continue
+	var cell_down: Vector2 = (
+		_terrain.get_cell_global_center(
+			cell + Vector2i(0, 1)
+		)
+		- _terrain.get_cell_global_center(cell)
+	)
 
-		if node == self:
-			continue
-
+	for node: Node in nodes:
 		if not node is Node2D:
 			continue
 
-		if node.is_in_group("player"):
+		if not _is_structure(node):
 			continue
 
-		var node_2d: Node2D = node as Node2D
-
-		if node_2d == null:
-			continue
-
-		var is_structure: bool = (
-			node.is_in_group("placeable_structure")
-			or node.is_in_group("campfire")
-			or node.is_in_group("chest")
-			or node.is_in_group("building")
+		var saved_cell: Variant = node.get_meta(
+			"placement_cell",
+			null
 		)
 
-		var node_name: String = (
-			str(node.name).to_lower()
+		# Объекты, поставленные этим скриптом.
+		if saved_cell is Vector2i:
+			if saved_cell == cell:
+				return true
+			continue
+
+		# Объекты, заранее добавленные в сцену.
+		var position_to_check: Vector2 = (
+			(node as Node2D).global_position
 		)
 
 		if (
-			"campfire" in node_name
-			or "костер" in node_name
-			or "костёр" in node_name
-			or "chest" in node_name
-			or "сундук" in node_name
+			node is ChestContainer
+			or node.is_in_group("storage_chest")
+			or node.is_in_group("chest")
 		):
-			is_structure = true
+			# Корень текущей сцены сундука расположен снизу.
+			position_to_check -= cell_down * 0.5
 
-		if not is_structure:
-			continue
-
-		var node_cell: Vector2i = (
+		var occupied_cell: Vector2i = (
 			_terrain.global_position_to_cell(
-				node_2d.global_position
+				position_to_check
 			)
 		)
 
-		if node_cell == cell_coordinates:
+		if occupied_cell == cell:
 			return true
 
 	return false
 
 
-func _has_physics_object_at_position(
-	world_position: Vector2,
+func _has_physics_object_in_cell(
+	cell: Vector2i,
 	player: Node2D
 ) -> bool:
-	if player == null:
-		return false
-
 	var world_2d: World2D = player.get_world_2d()
 
 	if world_2d == null:
 		return false
 
-	var query := PhysicsPointQueryParameters2D.new()
+	var center: Vector2 = _terrain.get_cell_global_center(cell)
+	var cell_right: Vector2 = (
+		_terrain.get_cell_global_center(
+			cell + Vector2i(1, 0)
+		)
+		- center
+	)
+	var cell_down: Vector2 = (
+		_terrain.get_cell_global_center(
+			cell + Vector2i(0, 1)
+		)
+		- center
+	)
 
-	query.position = world_position
+	var shape: RectangleShape2D = RectangleShape2D.new()
+
+	# Проверяем почти всю клетку, а не только её центр.
+	# Отступ от границ исключает касание соседних блоков.
+	shape.size = Vector2(
+		maxf(1.0, cell_right.length() - 2.0),
+		maxf(1.0, cell_down.length() - 2.0)
+	)
+
+	var query: PhysicsShapeQueryParameters2D = (
+		PhysicsShapeQueryParameters2D.new()
+	)
+
+	query.shape = shape
+	query.transform = Transform2D(cell_right.angle(), center)
 	query.collision_mask = placement_collision_mask
 	query.collide_with_bodies = true
-	query.collide_with_areas = true
+
+	# Зона взаимодействия или подбора не является стеной.
+	# Строения без физического тела проверяются отдельно.
+	query.collide_with_areas = false
+
+	if player is CollisionObject2D:
+		query.exclude = [
+			(player as CollisionObject2D).get_rid()
+		]
 
 	var results: Array[Dictionary] = (
-		world_2d.direct_space_state.intersect_point(
+		world_2d.direct_space_state.intersect_shape(
 			query,
 			32
 		)
 	)
 
 	for result: Dictionary in results:
-		var collider: Object = result.get(
-			"collider"
-		)
+		var collider: Object = result.get("collider")
 
-		if collider == null:
-			continue
-
-		if collider == player:
+		if collider == null or collider == player:
 			continue
 
 		if collider is Node:
 			var collider_node: Node = collider as Node
 
-			if collider_node == null:
+			if player.is_ancestor_of(collider_node):
 				continue
 
-			if collider_node == player:
+			if collider_node.is_in_group("player"):
 				continue
 
-			if collider_node.is_in_group(
-				"player"
-			):
-				continue
-
-			if collider_node.is_in_group(
-				"terrain"
-			):
-				return true
-
-			if collider_node.is_in_group(
-				"campfire"
-			):
-				return true
-
-			if collider_node.is_in_group(
-				"placeable_structure"
-			):
-				return true
-
-			if collider_node.is_in_group(
-				"building"
-			):
-				return true
-
-			if collider_node.is_in_group(
-				"chest"
-			):
-				return true
-
-			var collider_name: String = (
-				str(collider_node.name).to_lower()
-			)
-
-			if (
-				"campfire" in collider_name
-				or "костер" in collider_name
-				or "костёр" in collider_name
-				or "chest" in collider_name
-				or "сундук" in collider_name
-			):
-				return true
-
-		# Любой другой физический объект
-		# считается занятой клеткой.
 		return true
 
 	return false
 
 
-func _find_player() -> Node2D:
-	var player_from_group: Node = (
-		get_tree().get_first_node_in_group(
-			"player"
+func _ensure_preview(item_id: StringName) -> bool:
+	if (
+		is_instance_valid(_preview)
+		and _preview_item_id == item_id
+	):
+		return true
+
+	_clear_preview()
+
+	var world: Node = get_tree().current_scene
+
+	if world == null:
+		return false
+
+	_preview = Node2D.new()
+	_preview.name = "PlacementPreview"
+	_preview.z_index = 100
+	_preview.visible = false
+
+	if item_id == &"campfire":
+		var base: Sprite2D = Sprite2D.new()
+		base.texture = PREVIEW_BASE_TEXTURE
+		base.scale = Vector2(0.5, 0.5)
+		_preview.add_child(base)
+
+	elif item_id == &"chest":
+		if chest_scene == null:
+			_clear_preview()
+			return false
+
+		# Не добавляем исходный сундук в дерево:
+		# его _ready(), хранение и физика не запускаются.
+		var source: Node = chest_scene.instantiate()
+
+		if source is Node2D:
+			_preview.scale = (source as Node2D).scale
+
+		# Копируем только изображение текущей сцены.
+		# duplicate(0) не переносит скрипты и группы.
+		var placeholder: Node = source.get_node_or_null(
+			"Placeholder"
 		)
+
+		if placeholder != null:
+			_preview.add_child(placeholder.duplicate(0))
+
+		var sprite: Node = source.get_node_or_null(
+			"Sprite2D"
+		)
+
+		if sprite != null:
+			_preview.add_child(sprite.duplicate(0))
+
+		source.free()
+
+		if _preview.get_child_count() == 0:
+			push_warning(
+				"CampfirePlacement: у сундука нет узлов изображения."
+			)
+			_clear_preview()
+			return false
+
+	else:
+		_clear_preview()
+		return false
+
+	world.add_child(_preview)
+	_preview_item_id = item_id
+
+	return true
+
+
+func _show_preview(
+	item_id: StringName,
+	world_position: Vector2,
+	color: Color
+) -> void:
+	if not _ensure_preview(item_id):
+		return
+
+	_preview.global_position = world_position
+	_preview.modulate = color
+	_preview.visible = true
+
+
+func _hide_preview() -> void:
+	if is_instance_valid(_preview):
+		_preview.visible = false
+
+
+func _clear_preview() -> void:
+	if is_instance_valid(_preview):
+		_preview.visible = false
+		_preview.queue_free()
+
+	_preview = null
+	_preview_item_id = &""
+
+
+func _find_player() -> Node2D:
+	var grouped: Node = get_tree().get_first_node_in_group(
+		"player"
 	)
 
-	if player_from_group is Node2D:
-		return player_from_group as Node2D
+	if grouped is Node2D:
+		return grouped as Node2D
 
 	var world: Node = get_tree().current_scene
 
 	if world == null:
 		return null
 
-	var player_node: Node = world.get_node_or_null(
-		"Player"
-	)
-
-	if player_node is Node2D:
-		return player_node as Node2D
-
-	return null
+	return world.get_node_or_null("Player") as Node2D
 
 
 func _find_terrain() -> TerrainLayer:
-	var terrain_from_group: Node = (
-		get_tree().get_first_node_in_group(
-			"terrain"
-		)
+	var grouped: Node = get_tree().get_first_node_in_group(
+		"terrain"
 	)
 
-	if terrain_from_group is TerrainLayer:
-		return terrain_from_group as TerrainLayer
+	if grouped is TerrainLayer:
+		return grouped as TerrainLayer
 
 	var world: Node = get_tree().current_scene
 
 	if world == null:
 		return null
 
-	var terrain_node: Node = world.get_node_or_null(
-		"Terrain"
+	var direct: Node = world.get_node_or_null("Terrain")
+
+	if direct is TerrainLayer:
+		return direct as TerrainLayer
+
+	var layers: Array[Node] = world.find_children(
+		"*",
+		"TileMapLayer",
+		true,
+		false
 	)
 
-	if terrain_node is TerrainLayer:
-		return terrain_node as TerrainLayer
-
-	var tile_map_layers: Array[Node] = (
-		world.find_children(
-			"*",
-			"TileMapLayer",
-			true,
-			false
-		)
-	)
-
-	for node: Node in tile_map_layers:
+	for node: Node in layers:
 		if node is TerrainLayer:
 			return node as TerrainLayer
 
