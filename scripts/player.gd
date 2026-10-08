@@ -1122,6 +1122,29 @@ func transfer_opened_chest_slot_to_player(slot_index: int, amount: int) -> int:
 
 
 # --- Temporary food effects added by the chest/campfire update ---
+func _unhandled_input(event: InputEvent) -> void:
+	if is_dead or get_tree().paused:
+		return
+	if not event.is_action_pressed("secondary_action"):
+		return
+	if _try_eat_selected_food():
+		get_viewport().set_input_as_handled()
+
+
+## Съедает еду из выбранной ячейки панели быстрого доступа.
+func _try_eat_selected_food() -> bool:
+	if inventory == null:
+		return false
+	var hotbar_index: int = clampi(int(get_meta("selected_hotbar_index", 0)), 0, 8)
+	var slot_index: int = 27 + hotbar_index
+	var stack: ItemStack = inventory.get_slot(slot_index)
+	if stack == null or stack.is_empty():
+		return false
+	if stack.item_id != &"raw_meat" and stack.item_id != &"cooked_meat":
+		return false
+	return below_consume_food_from_slot(slot_index)
+
+
 func below_consume_food_from_slot(slot_index: int) -> bool:
 	if inventory == null: return false
 	var stack: ItemStack=inventory.get_slot(slot_index)
@@ -1147,6 +1170,8 @@ func _below_apply_temporary_stat_bonus(hp_bonus: float, stamina_bonus: float, du
 	var stamina_name:=_below_find_property([&"max_stamina",&"stamina_max",&"maximum_stamina"])
 	if hp_name != &"": set(hp_name,float(get(hp_name))+hp_bonus)
 	if stamina_name != &"": set(stamina_name,float(get(stamina_name))+stamina_bonus)
+	health_changed.emit(self.current_health, self.max_health)
+	stamina_changed.emit(self.current_stamina, self.max_stamina)
 	var timer:=get_tree().create_timer(duration)
 	timer.timeout.connect(_below_remove_temporary_stat_bonus.bind(hp_name,stamina_name,hp_bonus,stamina_bonus))
 
@@ -1157,3 +1182,5 @@ func _below_remove_temporary_stat_bonus(hp_name: StringName, stamina_name: Strin
 	var current_stamina:=_below_find_property([&"stamina",&"current_stamina"])
 	if current_hp != &"" and hp_name != &"": set(current_hp,minf(float(get(current_hp)),float(get(hp_name))))
 	if current_stamina != &"" and stamina_name != &"": set(current_stamina,minf(float(get(current_stamina)),float(get(stamina_name))))
+	health_changed.emit(self.current_health, self.max_health)
+	stamina_changed.emit(self.current_stamina, self.max_stamina)

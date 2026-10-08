@@ -54,7 +54,7 @@ func _exit_tree() -> void:
 	_clear_preview()
 
 
-func _process(_delta: float) -> void:
+func _physics_process(_delta: float) -> void:
 	if get_tree().paused:
 		_hide_preview()
 		return

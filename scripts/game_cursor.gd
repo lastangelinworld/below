@@ -22,7 +22,7 @@ func clear_context(source: Object) -> void:
 	if source != null:
 		_contexts.erase(source.get_instance_id())
 
-func _process(_delta: float) -> void:
+func _physics_process(_delta: float) -> void:
 	var wanted := Mode.NORMAL
 	for id in _contexts.keys():
 		if not is_instance_id_valid(id):

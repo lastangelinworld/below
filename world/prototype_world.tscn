@@ -70,7 +70,7 @@ script = ExtResource("14_campfire_placement")
 chest_scene = ExtResource("19_jvuuw")
 
 [node name="Player" parent="." unique_id=1776581139 node_paths=PackedStringArray("terrain") instance=ExtResource("1_tu1po")]
-position = Vector2(-18, 120)
+position = Vector2(-18, 100)
 move_speed = 80.0
 jump_velocity = -280.0
 arm_aim_offset_degrees = -50.0

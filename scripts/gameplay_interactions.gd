@@ -1,7 +1,14 @@
 class_name GameplayInteractions
 extends Node
 
-const INTERACTION_DISTANCE: float = 110.0
+@export_group("Взаимодействие")
+
+## Дальность взаимодействия в пикселях. Один блок — 32.
+@export_range(16.0, 200.0, 1.0) var interaction_distance: float = 52.0
+
+## Насколько близко к объекту нужно навести мышь, чтобы выбрать именно его.
+@export_range(8.0, 64.0, 1.0) var mouse_pick_radius: float = 26.0
+
 const UI_REFRESH_INTERVAL: float = 0.15
 
 var player: Node2D
@@ -195,8 +202,8 @@ func _nearest_interactable() -> Node2D:
 	if not is_instance_valid(player):
 		return null
 
-	var best: Node2D = null
-	var best_distance: float = INTERACTION_DISTANCE
+	# Сначала собираем всех, до кого реально можно дотянуться.
+	var candidates: Array[Node2D] = []
 
 	for group_name in [
 		"storage_chest",
@@ -214,11 +221,59 @@ func _nearest_interactable() -> Node2D:
 				)
 			)
 
-			if distance < best_distance:
-				best_distance = distance
-				best = candidate
+			if distance <= interaction_distance:
+				candidates.append(candidate)
+
+	if candidates.is_empty():
+		return null
+
+	# Если рядом несколько — выбираем тот, на который наведена мышь.
+	var mouse_position: Vector2 = _get_mouse_world_position()
+	var picked_by_mouse: Node2D = null
+	var best_mouse_distance: float = mouse_pick_radius
+
+	for candidate: Node2D in candidates:
+		var mouse_distance: float = (
+			candidate.global_position.distance_to(
+				mouse_position
+			)
+		)
+
+		if mouse_distance < best_mouse_distance:
+			best_mouse_distance = mouse_distance
+			picked_by_mouse = candidate
+
+	if picked_by_mouse != null:
+		return picked_by_mouse
+
+	# Мышь ни на кого не наведена — берём ближайший к игроку.
+	var best: Node2D = candidates[0]
+	var best_distance: float = INF
+
+	for candidate: Node2D in candidates:
+		var distance: float = (
+			player.global_position.distance_to(
+				candidate.global_position
+			)
+		)
+
+		if distance < best_distance:
+			best_distance = distance
+			best = candidate
 
 	return best
+
+
+func _get_mouse_world_position() -> Vector2:
+	var viewport: Viewport = get_viewport()
+
+	if viewport == null:
+		return Vector2.ZERO
+
+	return (
+		viewport.get_canvas_transform().affine_inverse()
+		* viewport.get_mouse_position()
+	)
 
 
 func _try_interact() -> void:
@@ -696,9 +751,7 @@ func _refresh_fire() -> void:
 	var input_ids: Array = active_target.get("input_ids")
 	var output_ids: Array = active_target.get("output_ids")
 	var progress: Array = active_target.get("cook_progress")
-	var cook_seconds: float = float(
-		active_target.get("COOK_SECONDS")
-	)
+	var cook_seconds: float = Campfire.COOK_SECONDS
 
 	_ensure_slots(
 		object_grid,
