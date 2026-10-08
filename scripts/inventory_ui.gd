@@ -34,6 +34,9 @@ var craft_slots: Array[ItemStack] = []
 var inventory_views: Array[InventorySlotUI] = []
 var hotbar_views: Array[InventorySlotUI] = []
 var inventory_hotbar_views: Array[InventorySlotUI] = []
+var food_views: Array[InventorySlotUI] = []
+var food_timer_labels: Array[Label] = []
+var food_row: HBoxContainer
 var craft_views: Array[InventorySlotUI] = []
 var result_view: InventorySlotUI
 var selected_hotbar := 0
@@ -51,6 +54,8 @@ func _ready() -> void:
 	call_deferred("_connect_player")
 
 func _process(_delta: float) -> void:
+	if overlay.visible:
+		_refresh_food()
 	if carry_preview.visible:
 		carry_preview.position = get_viewport().get_mouse_position() + Vector2(18, 18)
 
@@ -173,6 +178,100 @@ func _build_views() -> void:
 	result_view = _new_view(0)
 	result_holder.add_child(result_view)
 	result_view.slot_pressed.connect(_on_result_pressed)
+	_build_food_slots()
+
+## Три ячейки питания: персонаж сам ест из них, каждая порция действует 25 минут.
+func _build_food_slots() -> void:
+	var column: Node = inventory_hotbar_grid.get_parent()
+	if column == null:
+		return
+	if food_row != null and is_instance_valid(food_row):
+		food_row.queue_free()
+	food_views.clear()
+	food_timer_labels.clear()
+
+	var title := Label.new()
+	title.text = "ЕДА — съедается сама, одна порция на 25 минут"
+	column.add_child(title)
+
+	food_row = HBoxContainer.new()
+	food_row.add_theme_constant_override("separation", 6)
+	column.add_child(food_row)
+
+	for i in range(3):
+		var cell := VBoxContainer.new()
+		cell.add_theme_constant_override("separation", 2)
+
+		var view := _new_view(i)
+		view.slot_pressed.connect(_on_food_slot_pressed)
+		cell.add_child(view)
+
+		var timer_label := Label.new()
+		timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		timer_label.add_theme_font_size_override("font_size", 11)
+		cell.add_child(timer_label)
+
+		food_row.add_child(cell)
+		food_views.append(view)
+		food_timer_labels.append(timer_label)
+
+func _refresh_food() -> void:
+	if player == null or food_views.is_empty():
+		return
+	if not player.has_method("get_food_slot"):
+		return
+	for i in range(food_views.size()):
+		var data: Dictionary = player.call("get_food_slot", i)
+		if data.is_empty():
+			continue
+		var stored_id: StringName = StringName(data.get("stored_id", &""))
+		var stored_amount: int = int(data.get("stored_amount", 0))
+		var active_id: StringName = StringName(data.get("active_id", &""))
+		var time_left: float = float(data.get("time_left", 0.0))
+
+		# Показываем запас, а когда он кончился — действующее блюдо.
+		var stack := ItemStack.new()
+		if stored_amount > 0:
+			stack.set_item(stored_id, stored_amount)
+		elif active_id != &"":
+			stack.set_item(active_id, 1)
+		food_views[i].display_stack(stack)
+
+		if time_left > 0.0:
+			var seconds := ceili(time_left)
+			food_timer_labels[i].text = "%02d:%02d" % [seconds / 60, seconds % 60]
+			food_timer_labels[i].modulate = Color("8fe388")
+		else:
+			food_timer_labels[i].text = "пусто"
+			food_timer_labels[i].modulate = Color("6a6d73")
+
+func _on_food_slot_pressed(index: int, button: MouseButton) -> void:
+	if player == null or inventory == null:
+		return
+	if not player.has_method("add_food_to_slot"):
+		return
+
+	# В руке еда — кладём в ячейку.
+	if not carried.is_empty():
+		if not bool(player.call("is_food", carried.item_id)):
+			return
+		var put: int = carried.amount if button == MOUSE_BUTTON_LEFT else 1
+		var moved: int = int(player.call("add_food_to_slot", index, carried.item_id, put))
+		if moved > 0:
+			carried.amount -= moved
+			_clear_if_empty(carried)
+			_refresh_all()
+		return
+
+	# Рука пуста — забираем запас обратно.
+	var wanted: int = 9999 if button == MOUSE_BUTTON_LEFT else 1
+	var data: Dictionary = player.call("take_food_from_slot", index, wanted)
+	if data.is_empty():
+		return
+	var taken := ItemStack.new()
+	taken.set_item(StringName(data.get("item_id", &"")), int(data.get("amount", 0)))
+	carried = taken
+	_refresh_all()
 
 func _refresh_all() -> void:
 	if inventory == null or inventory_views.is_empty():
@@ -197,6 +296,7 @@ func _refresh_all() -> void:
 		selected_label.text = "%d — %s × %d" % [selected_hotbar + 1, item.display_name if item else str(selected.item_id), selected.amount]
 	_refresh_craft()
 	_refresh_carried()
+	_refresh_food()
 
 func _on_inventory_hover(index: int, entered: bool) -> void:
 	hovered_inventory_slot = index if entered else (-1 if hovered_inventory_slot == index else hovered_inventory_slot)
@@ -432,6 +532,3 @@ func _return_loose_items() -> void:
 	_refresh_all()
 
 
-func _on_slot_use_requested(slot_index: int) -> void:
-	if player != null and player.has_method("below_consume_food_from_slot"):
-		player.below_consume_food_from_slot(slot_index)

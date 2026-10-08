@@ -156,7 +156,7 @@ script = ExtResource("16_statusbarnumbers")
 
 [node name="ChestContainer" parent="." unique_id=1066114201 instance=ExtResource("19_jvuuw")]
 position = Vector2(-47, 161)
-initial_item_ids = Array[StringName]([&"plank_scraps", &"coal", &"flint"])
-initial_item_amounts = Array[int]([20, 3, 10])
+initial_item_ids = Array[StringName]([&"plank_scraps", &"coal", &"flint", &"raw_meat", &"cooked_meat"])
+initial_item_amounts = Array[int]([20, 3, 10, 12, 6])
 
 [editable path="Player"]

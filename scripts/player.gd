@@ -315,6 +315,8 @@ var opened_chest: ChestContainer = null
 func _ready() -> void:
 	add_to_group("player")
 	_spawn_position = global_position
+	_base_max_health = max_health
+	_base_max_stamina = max_stamina
 	_initialize_inventory()
 	visuals_base_scale_x = absf(visuals.scale.x)
 	body_breath_base_rotation = body_breath.rotation
@@ -345,6 +347,8 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	_update_food(delta)
+
 	if is_dead and stop_on_death:
 		_update_stamina(delta)
 		return
@@ -1121,66 +1125,142 @@ func transfer_opened_chest_slot_to_player(slot_index: int, amount: int) -> int:
 	return InventoryData.transfer_slot_to(opened_chest.inventory, inventory, slot_index, amount)
 
 
-# --- Temporary food effects added by the chest/campfire update ---
-func _unhandled_input(event: InputEvent) -> void:
-	if is_dead or get_tree().paused:
-		return
-	if not event.is_action_pressed("secondary_action"):
-		return
-	if _try_eat_selected_food():
-		get_viewport().set_input_as_handled()
+# ===== Питание: три ячейки с отдельными таймерами =====
+
+const FOOD_SLOT_COUNT: int = 3
+const FOOD_EFFECT_SECONDS: float = 1500.0
+
+signal food_changed
+
+## Запас еды, лежащий в ячейке.
+var food_stored_ids: Array[StringName] = [&"", &"", &""]
+var food_stored_amounts: Array[int] = [0, 0, 0]
+
+## Блюдо, которое действует сейчас, и остаток его времени.
+var food_active_ids: Array[StringName] = [&"", &"", &""]
+var food_time_left: Array[float] = [0.0, 0.0, 0.0]
+
+var _base_max_health: int = 100
+var _base_max_stamina: float = 100.0
 
 
-## Съедает еду из выбранной ячейки панели быстрого доступа.
-func _try_eat_selected_food() -> bool:
-	if inventory == null:
-		return false
-	var hotbar_index: int = clampi(int(get_meta("selected_hotbar_index", 0)), 0, 8)
-	var slot_index: int = 27 + hotbar_index
-	var stack: ItemStack = inventory.get_slot(slot_index)
-	if stack == null or stack.is_empty():
-		return false
-	if stack.item_id != &"raw_meat" and stack.item_id != &"cooked_meat":
-		return false
-	return below_consume_food_from_slot(slot_index)
+## Прибавка от блюда: x — здоровье, y — выносливость.
+func get_food_bonus(item_id: StringName) -> Vector2:
+	if item_id == &"raw_meat":
+		return Vector2(5.0, 0.0)
+
+	if item_id == &"cooked_meat":
+		return Vector2(10.0, 5.0)
+
+	return Vector2.ZERO
 
 
-func below_consume_food_from_slot(slot_index: int) -> bool:
-	if inventory == null: return false
-	var stack: ItemStack=inventory.get_slot(slot_index)
-	if stack == null or stack.is_empty(): return false
-	var hp_bonus:=0.0; var stamina_bonus:=0.0
-	if stack.item_id == &"raw_meat": hp_bonus=5.0
-	elif stack.item_id == &"cooked_meat": hp_bonus=10.0; stamina_bonus=5.0
-	else: return false
-	stack.amount-=1
-	if stack.amount <= 0: stack.clear()
-	inventory.changed.emit()
-	_below_apply_temporary_stat_bonus(hp_bonus,stamina_bonus,1800.0)
-	return true
+func is_food(item_id: StringName) -> bool:
+	return get_food_bonus(item_id) != Vector2.ZERO
 
-func _below_find_property(candidates: Array[StringName]) -> StringName:
-	for info: Dictionary in get_property_list():
-		var prop:=StringName(info.get("name",""))
-		if prop in candidates: return prop
-	return &""
 
-func _below_apply_temporary_stat_bonus(hp_bonus: float, stamina_bonus: float, duration: float) -> void:
-	var hp_name:=_below_find_property([&"max_health",&"health_max",&"maximum_health"])
-	var stamina_name:=_below_find_property([&"max_stamina",&"stamina_max",&"maximum_stamina"])
-	if hp_name != &"": set(hp_name,float(get(hp_name))+hp_bonus)
-	if stamina_name != &"": set(stamina_name,float(get(stamina_name))+stamina_bonus)
-	health_changed.emit(self.current_health, self.max_health)
-	stamina_changed.emit(self.current_stamina, self.max_stamina)
-	var timer:=get_tree().create_timer(duration)
-	timer.timeout.connect(_below_remove_temporary_stat_bonus.bind(hp_name,stamina_name,hp_bonus,stamina_bonus))
+## Отсчитывает таймеры и сам съедает следующую порцию, когда ячейка освободилась.
+func _update_food(delta: float) -> void:
+	var changed: bool = false
 
-func _below_remove_temporary_stat_bonus(hp_name: StringName, stamina_name: StringName, hp_bonus: float, stamina_bonus: float) -> void:
-	if hp_name != &"": set(hp_name,maxf(1.0,float(get(hp_name))-hp_bonus))
-	if stamina_name != &"": set(stamina_name,maxf(1.0,float(get(stamina_name))-stamina_bonus))
-	var current_hp:=_below_find_property([&"health",&"current_health"])
-	var current_stamina:=_below_find_property([&"stamina",&"current_stamina"])
-	if current_hp != &"" and hp_name != &"": set(current_hp,minf(float(get(current_hp)),float(get(hp_name))))
-	if current_stamina != &"" and stamina_name != &"": set(current_stamina,minf(float(get(current_stamina)),float(get(stamina_name))))
-	health_changed.emit(self.current_health, self.max_health)
-	stamina_changed.emit(self.current_stamina, self.max_stamina)
+	for i: int in range(FOOD_SLOT_COUNT):
+		if food_time_left[i] > 0.0:
+			food_time_left[i] = maxf(0.0, food_time_left[i] - delta)
+
+			if food_time_left[i] <= 0.0:
+				food_active_ids[i] = &""
+				changed = true
+
+		if food_time_left[i] <= 0.0 and food_stored_amounts[i] > 0:
+			food_active_ids[i] = food_stored_ids[i]
+			food_time_left[i] = FOOD_EFFECT_SECONDS
+			food_stored_amounts[i] -= 1
+
+			if food_stored_amounts[i] <= 0:
+				food_stored_amounts[i] = 0
+				food_stored_ids[i] = &""
+
+			changed = true
+
+	if changed:
+		_apply_food_bonuses()
+		food_changed.emit()
+
+
+## Пересчитывает максимумы из всех действующих блюд.
+func _apply_food_bonuses() -> void:
+	var health_bonus: float = 0.0
+	var stamina_bonus: float = 0.0
+
+	for i: int in range(FOOD_SLOT_COUNT):
+		var bonus: Vector2 = get_food_bonus(food_active_ids[i])
+		health_bonus += bonus.x
+		stamina_bonus += bonus.y
+
+	max_health = _base_max_health + int(health_bonus)
+	max_stamina = _base_max_stamina + stamina_bonus
+
+	current_health = mini(current_health, max_health)
+	current_stamina = minf(current_stamina, max_stamina)
+
+	health_changed.emit(current_health, max_health)
+	stamina_changed.emit(current_stamina, max_stamina)
+
+
+## Кладёт еду в ячейку. Возвращает, сколько поместилось.
+func add_food_to_slot(slot_index: int, item_id: StringName, amount: int) -> int:
+	if slot_index < 0 or slot_index >= FOOD_SLOT_COUNT:
+		return 0
+
+	if amount <= 0 or not is_food(item_id):
+		return 0
+
+	if (
+		food_stored_amounts[slot_index] > 0
+		and food_stored_ids[slot_index] != item_id
+	):
+		return 0
+
+	food_stored_ids[slot_index] = item_id
+	food_stored_amounts[slot_index] += amount
+	food_changed.emit()
+	return amount
+
+
+## Забирает запас еды из ячейки обратно игроку.
+func take_food_from_slot(slot_index: int, amount: int) -> Dictionary:
+	if slot_index < 0 or slot_index >= FOOD_SLOT_COUNT:
+		return {}
+
+	if food_stored_amounts[slot_index] <= 0 or amount <= 0:
+		return {}
+
+	var taken: int = mini(amount, food_stored_amounts[slot_index])
+
+	var result := {
+		"item_id": food_stored_ids[slot_index],
+		"amount": taken
+	}
+
+	food_stored_amounts[slot_index] -= taken
+
+	if food_stored_amounts[slot_index] <= 0:
+		food_stored_amounts[slot_index] = 0
+		food_stored_ids[slot_index] = &""
+
+	food_changed.emit()
+	return result
+
+
+## Данные ячейки для интерфейса.
+func get_food_slot(slot_index: int) -> Dictionary:
+	if slot_index < 0 or slot_index >= FOOD_SLOT_COUNT:
+		return {}
+
+	return {
+		"stored_id": food_stored_ids[slot_index],
+		"stored_amount": food_stored_amounts[slot_index],
+		"active_id": food_active_ids[slot_index],
+		"time_left": food_time_left[slot_index],
+		"duration": FOOD_EFFECT_SECONDS
+	}

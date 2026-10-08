@@ -534,8 +534,8 @@ func _build_ui() -> void:
 
 	var instructions: Label = Label.new()
 	instructions.text = (
-		"ЛКМ по ячейке игрока — положить.\n"
-		+ "ЛКМ по ячейке объекта — забрать."
+		"По ячейке игрока: ЛКМ — положить всё, ПКМ — одну штуку.\n"
+		+ "По ячейке объекта: ЛКМ — забрать всё, ПКМ — одну штуку."
 	)
 	box.add_child(instructions)
 
@@ -746,7 +746,7 @@ func _refresh_fire() -> void:
 		active_target.get("fuel_amount")
 	)
 
-	_set_slot(fuel_view, fuel_id, fuel_amount, false)
+	_set_slot(fuel_view, fuel_id, fuel_amount, true)
 
 	var input_ids: Array = active_target.get("input_ids")
 	var output_ids: Array = active_target.get("output_ids")
@@ -805,20 +805,34 @@ func _on_player_slot_pressed(
 		index: int,
 		mouse_button: MouseButton
 ) -> void:
-	if mouse_button != MOUSE_BUTTON_LEFT:
-		return
-
-	_put_player_slot(index)
+	# Левая кнопка кладёт весь стак, правая — по одной штуке.
+	if mouse_button == MOUSE_BUTTON_LEFT:
+		_put_player_slot(index, 0)
+	elif mouse_button == MOUSE_BUTTON_RIGHT:
+		_put_player_slot(index, 1)
 
 
 func _on_object_slot_pressed(
 		index: int,
 		mouse_button: MouseButton
 ) -> void:
-	if mouse_button != MOUSE_BUTTON_LEFT:
+	if (
+		mouse_button != MOUSE_BUTTON_LEFT
+		and mouse_button != MOUSE_BUTTON_RIGHT
+	):
 		return
 
 	if not is_instance_valid(active_target):
+		return
+
+	# Ячейка топлива у костра имеет индекс -1.
+	if mode == "campfire" and index == -1:
+		_take_fuel_from_fire(
+			0 if mouse_button == MOUSE_BUTTON_LEFT else 1
+		)
+		return
+
+	if mouse_button != MOUSE_BUTTON_LEFT:
 		return
 
 	if index < 0 or index >= object_views.size():
@@ -838,13 +852,23 @@ func _on_object_slot_pressed(
 		_take_from_fire(index - 5)
 
 
-func _put_player_slot(index: int) -> void:
+## requested_amount: 0 — весь стак, иначе столько штук.
+func _put_player_slot(index: int, requested_amount: int) -> void:
 	if inventory == null or not is_instance_valid(active_target):
 		return
 
 	var stack: ItemStack = inventory.get_slot(index)
 
 	if stack == null or stack.is_empty():
+		return
+
+	var amount: int = (
+		stack.amount
+		if requested_amount <= 0
+		else mini(requested_amount, stack.amount)
+	)
+
+	if amount <= 0:
 		return
 
 	var moved: int = 0
@@ -857,13 +881,13 @@ func _put_player_slot(index: int) -> void:
 
 		moved = chest.store_items(
 			stack.item_id,
-			stack.amount
+			amount
 		)
 	elif stack.item_id == &"raw_meat":
 		moved = int(
 			active_target.call(
 				"add_raw_meat",
-				stack.amount
+				amount
 			)
 		)
 	elif (
@@ -874,12 +898,59 @@ func _put_player_slot(index: int) -> void:
 			active_target.call(
 				"add_fuel",
 				stack.item_id,
-				stack.amount
+				amount
 			)
 		)
 
 	if moved > 0:
 		inventory.remove_from_slot(index, moved)
+
+	_refresh_ui()
+
+
+## Забирает топливо из костра обратно в инвентарь.
+## requested_amount: 0 — забрать всё, иначе столько штук.
+func _take_fuel_from_fire(requested_amount: int) -> void:
+	if inventory == null or not is_instance_valid(active_target):
+		return
+
+	var fuel_id: StringName = StringName(
+		active_target.get("fuel_id")
+	)
+	var fuel_amount: int = int(
+		active_target.get("fuel_amount")
+	)
+
+	if fuel_id == &"" or fuel_amount <= 0:
+		return
+
+	var wanted: int = (
+		fuel_amount
+		if requested_amount <= 0
+		else mini(requested_amount, fuel_amount)
+	)
+
+	var available: int = inventory.get_addable_amount(
+		fuel_id,
+		wanted
+	)
+
+	if available <= 0:
+		return
+
+	var data: Dictionary = active_target.call(
+		"take_fuel",
+		available
+	)
+
+	if data.is_empty():
+		return
+
+	var taken: int = int(data.get("amount", 0))
+	var added: int = inventory.add_item(fuel_id, taken)
+
+	if added < taken:
+		active_target.call("add_fuel", fuel_id, taken - added)
 
 	_refresh_ui()
 
