@@ -309,15 +309,16 @@ var current_head_lean: float = 0.0
 
 ## Инвентарь создаётся автоматически в _ready().
 var inventory: InventoryData
-var opened_chest: ChestContainer = null
+
+## Экипировка (Фаза 2) создаётся автоматически в _ready().
+var equipment: EquipmentSystem
 
 
 func _ready() -> void:
 	add_to_group("player")
 	_spawn_position = global_position
-	_base_max_health = max_health
-	_base_max_stamina = max_stamina
 	_initialize_inventory()
+	_initialize_equipment()
 	visuals_base_scale_x = absf(visuals.scale.x)
 	body_breath_base_rotation = body_breath.rotation
 
@@ -347,8 +348,6 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	_update_food(delta)
-
 	if is_dead and stop_on_death:
 		_update_stamina(delta)
 		return
@@ -914,10 +913,22 @@ func take_damage(amount: int, _source_position: Vector2 = Vector2.ZERO) -> void:
 	if is_dead or amount <= 0:
 		return
 
-	current_health = clampi(current_health - amount, 0, max_health)
+	current_health = clampi(current_health - _below_apply_armor(amount), 0, max_health)
 	health_changed.emit(current_health, max_health)
 	if current_health <= 0:
 		_die()
+
+
+## Снижает входящий урон суммарной защитой экипировки.
+## Полностью погасить удар нельзя: сохраняется минимум 15% урона.
+func _below_apply_armor(amount: int) -> int:
+	if equipment == null:
+		return amount
+	var armor_total: int = int(equipment.get_totals().get("armor", 0))
+	if armor_total <= 0:
+		return amount
+	var minimal_damage: int = maxi(1, int(ceilf(float(amount) * 0.15)))
+	return maxi(minimal_damage, amount - armor_total)
 
 
 func set_health(value: int) -> void:
@@ -1090,6 +1101,30 @@ func _initialize_inventory() -> void:
 	inventory.setup()
 
 
+## Создаёт узел экипировки и запоминает базовые значения статов.
+## ВАЖНО: вызывается до установки current_health/current_stamina,
+## поэтому baseline совпадает с экспортными настройками персонажа.
+func _initialize_equipment() -> void:
+	equipment = EquipmentSystem.new()
+	equipment.name = "EquipmentSystem"
+	add_child(equipment)
+	equipment.setup(self)
+
+
+## Надевает предмет из ячейки инвентаря в указанный слот.
+func equip_from_inventory(inventory_slot_index: int, slot: EquipmentSlot.Type) -> bool:
+	if equipment == null:
+		return false
+	return equipment.equip_from_inventory(inventory, inventory_slot_index, slot)
+
+
+## Снимает предмет из слота экипировки в инвентарь.
+func unequip_to_inventory(slot: EquipmentSlot.Type) -> bool:
+	if equipment == null:
+		return false
+	return equipment.unequip_to_inventory(inventory, slot)
+
+
 ## Вызывается предметом на земле. Возвращает реально принятое количество.
 func receive_item(item_id: StringName, amount: int) -> int:
 	if inventory == null or amount <= 0:
@@ -1102,201 +1137,28 @@ func receive_item(item_id: StringName, amount: int) -> int:
 	return accepted
 
 
-func get_inventory_weight_kg() -> float:
-	return inventory.get_total_weight_kg() if inventory != null else 0.0
-
-
-func open_chest(chest: ChestContainer) -> void:
-	opened_chest = chest
-	print("Открыт сундук.")
-
-
-func close_chest() -> void:
-	opened_chest = null
-
-
-func transfer_player_slot_to_opened_chest(slot_index: int, amount: int) -> int:
-	if inventory == null or opened_chest == null or opened_chest.inventory == null:
-		return 0
-	return InventoryData.transfer_slot_to(inventory, opened_chest.inventory, slot_index, amount)
-
-
-func transfer_opened_chest_slot_to_player(slot_index: int, amount: int) -> int:
-	if inventory == null or opened_chest == null or opened_chest.inventory == null:
-		return 0
-	return InventoryData.transfer_slot_to(opened_chest.inventory, inventory, slot_index, amount)
-
-
-# ===== Питание: три ячейки с отдельными таймерами =====
-
-const FOOD_SLOT_COUNT: int = 3
-const FOOD_EFFECT_SECONDS: float = 1500.0
-
-signal food_changed
-
-## Запас еды, лежащий в ячейке.
-var food_stored_ids: Array[StringName] = [&"", &"", &""]
-var food_stored_amounts: Array[int] = [0, 0, 0]
-
-## Блюдо, которое действует сейчас, и остаток его времени.
-var food_active_ids: Array[StringName] = [&"", &"", &""]
-var food_time_left: Array[float] = [0.0, 0.0, 0.0]
-
-var _base_max_health: int = 100
-var _base_max_stamina: float = 100.0
-
-
-## Прибавка от блюда: x — здоровье, y — выносливость.
-func get_food_bonus(item_id: StringName) -> Vector2:
-	if item_id == &"raw_meat":
-		return Vector2(5.0, 0.0)
-
-	if item_id == &"cooked_meat":
-		return Vector2(10.0, 5.0)
-
-	return Vector2.ZERO
-
-
-func is_food(item_id: StringName) -> bool:
-	return get_food_bonus(item_id) != Vector2.ZERO
-
-
-## Отсчитывает таймеры и сам съедает следующую порцию, когда ячейка освободилась.
-func _update_food(delta: float) -> void:
-	var changed: bool = false
-
-	for i: int in range(FOOD_SLOT_COUNT):
-		if food_time_left[i] > 0.0:
-			food_time_left[i] = maxf(0.0, food_time_left[i] - delta)
-
-			if food_time_left[i] <= 0.0:
-				food_active_ids[i] = &""
-				changed = true
-
-		if food_time_left[i] <= 0.0 and food_stored_amounts[i] > 0:
-			food_active_ids[i] = food_stored_ids[i]
-			food_time_left[i] = FOOD_EFFECT_SECONDS
-			food_stored_amounts[i] -= 1
-
-			if food_stored_amounts[i] <= 0:
-				food_stored_amounts[i] = 0
-				food_stored_ids[i] = &""
-
-			changed = true
-
-	if changed:
-		_apply_food_bonuses()
-		food_changed.emit()
-
-
-## Пересчитывает максимумы из всех действующих блюд.
-func _apply_food_bonuses() -> void:
-	var health_bonus: float = 0.0
-	var stamina_bonus: float = 0.0
-
-	for i: int in range(FOOD_SLOT_COUNT):
-		var bonus: Vector2 = get_food_bonus(food_active_ids[i])
-		health_bonus += bonus.x
-		stamina_bonus += bonus.y
-
-	max_health = _base_max_health + int(health_bonus)
-	max_stamina = _base_max_stamina + stamina_bonus
-
-	current_health = mini(current_health, max_health)
-	current_stamina = minf(current_stamina, max_stamina)
-
-	health_changed.emit(current_health, max_health)
-	stamina_changed.emit(current_stamina, max_stamina)
-
-
-## Кладёт еду в ячейку. Возвращает, сколько поместилось.
-func add_food_to_slot(slot_index: int, item_id: StringName, amount: int) -> int:
-	if slot_index < 0 or slot_index >= FOOD_SLOT_COUNT:
-		return 0
-
-	if amount <= 0 or not is_food(item_id):
-		return 0
-
-	if (
-		food_stored_amounts[slot_index] > 0
-		and food_stored_ids[slot_index] != item_id
-	):
-		return 0
-
-	food_stored_ids[slot_index] = item_id
-	food_stored_amounts[slot_index] += amount
-	food_changed.emit()
-	return amount
-
-
-## Забирает запас еды из ячейки обратно игроку.
-func take_food_from_slot(slot_index: int, amount: int) -> Dictionary:
-	if slot_index < 0 or slot_index >= FOOD_SLOT_COUNT:
-		return {}
-
-	if food_stored_amounts[slot_index] <= 0 or amount <= 0:
-		return {}
-
-	var taken: int = mini(amount, food_stored_amounts[slot_index])
-
-	var result := {
-		"item_id": food_stored_ids[slot_index],
-		"amount": taken
-	}
-
-	food_stored_amounts[slot_index] -= taken
-
-	if food_stored_amounts[slot_index] <= 0:
-		food_stored_amounts[slot_index] = 0
-		food_stored_ids[slot_index] = &""
-
-	food_changed.emit()
-	return result
-
-
-## Данные ячейки для интерфейса.
-func get_food_slot(slot_index: int) -> Dictionary:
-	if slot_index < 0 or slot_index >= FOOD_SLOT_COUNT:
-		return {}
-
-	return {
-		"stored_id": food_stored_ids[slot_index],
-		"stored_amount": food_stored_amounts[slot_index],
-		"active_id": food_active_ids[slot_index],
-		"time_left": food_time_left[slot_index],
-		"duration": FOOD_EFFECT_SECONDS
-	}
-
-## Адаптер для панели быстрого доступа.
-## Передаёт команду употребления еды в HotbarFoodController.
-func below_consume_food_from_slot(slot_index: int) -> bool:
-	var system: Node = get_tree().get_first_node_in_group("below_food_runtime")
-	if system == null or not system.has_method("consume_from_slot"):
-		return false
-	return bool(system.call("consume_from_slot", slot_index, false))
-
-
 # BELOW_CHEST_MINING_V1
+## Вызывается перед метой на землю. Возвращает реальное количество урона.
 func _below_try_damage_chest() -> bool:
 	if terrain == null or terrain.tile_set == null:
 		return false
 	var cells: Array[Vector2i] = _get_attack_mining_cells()
 	# Непроходимая коллизия сундуку не нужна: ищем его по группе.
-	for candidate: Node in get_tree().get_nodes_in_group("storage_chest"):
+	for candidate: Node in get_tree().get_nodes_in_group("placeable_structure"):
 		if not candidate is Node2D or candidate.is_queued_for_deletion():
 			continue
 		if not candidate.has_method("receive_structure_damage"):
 			continue
-		var chest: Node2D = candidate as Node2D
-		var chest_cell: Vector2i = terrain.global_position_to_cell(chest.global_position)
+		var structure: Node2D = candidate as Node2D
+		var structure_cell: Vector2i = terrain.global_position_to_cell(structure.global_position)
 		for cell: Vector2i in cells:
 			if not is_cell_mineable(cell):
 				continue
 			var center: Vector2 = terrain.to_global(terrain.map_to_local(cell))
-			var local_center: Vector2 = chest.to_local(center)
-			if cell == chest_cell or Rect2(-16.0, -28.0, 32.0, 28.0).has_point(local_center):
+			var local_center: Vector2 = structure.to_local(center)
+			if cell == structure_cell or Rect2(-16.0, -28.0, 32.0, 28.0).has_point(local_center):
 				# Отладочное уничтожение блоков с одного удара здесь НЕ действует.
-				chest.call("receive_structure_damage", maxi(1, mining_damage))
+				structure.call("receive_structure_damage", maxi(1, mining_damage))
 				# Удар в сундук не повреждает одновременно его опору.
 				return true
 	return false

@@ -1,8 +1,8 @@
 extends Node
 ## Runtime companion for the existing InventoryUI. No scene replacement required.
-const FIRST_FOOD_SLOT := 36
-const FOOD_DURATION := 1800.0
-const FOOD_IDS: Array[StringName] = [&"raw_meat", &"cooked_meat"]
+const FIRST_FOOD_SLOT: int = FoodRules.FIRST_SLOT
+const FOOD_DURATION: float = FoodRules.DURATION_SECONDS
+const FOOD_IDS: Array[StringName] = FoodRules.FOOD_IDS
 
 var ui: Node
 var player: Node
@@ -192,7 +192,7 @@ func _build_hud() -> void:
 		ui.get("slot_scene") as PackedScene
 	)
 
-	for i in range(3):
+	for i in range(FoodRules.SLOT_COUNT):
 		var column := VBoxContainer.new()
 		column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		column.add_theme_constant_override("separation", 3)
@@ -503,7 +503,7 @@ func _process(delta: float) -> void:
 		effects[i]["remaining"] = float(effects[i]["remaining"]) - delta
 		if float(effects[i]["remaining"]) <= 0.0:
 			_remove_effect(i)
-	for i in range(3):
+	for i in range(FoodRules.SLOT_COUNT):
 		consume_from_slot(FIRST_FOOD_SLOT + i, true)
 	refresh_elapsed += delta
 	if refresh_elapsed >= 0.2:
@@ -529,7 +529,7 @@ func consume_from_slot(index: int, automatic: bool = false) -> bool:
 		# Automatic refill only at expiry; manual refill after half the duration.
 		if automatic or float(effects[existing]["remaining"]) > FOOD_DURATION * 0.5:
 			return false
-	elif effects.size() >= 3:
+	elif effects.size() >= FoodRules.SLOT_COUNT:
 		return false
 	var id: StringName = stack.item_id
 	var lane := index - FIRST_FOOD_SLOT if index >= FIRST_FOOD_SLOT else -1
@@ -540,13 +540,14 @@ func consume_from_slot(index: int, automatic: bool = false) -> bool:
 	var occupied: Array[int] = []
 	for effect in effects:
 		occupied.append(int(effect["lane"]))
-	if lane < 0 or lane > 2 or lane in occupied:
-		for i in range(3):
+	if lane < 0 or lane >= FoodRules.SLOT_COUNT or lane in occupied:
+		for i in range(FoodRules.SLOT_COUNT):
 			if i not in occupied:
 				lane = i
 				break
-	var hp := 5 if id == &"raw_meat" else 10
-	var stamina := 0.0 if id == &"raw_meat" else 5.0
+	var bonus: Vector2 = FoodRules.get_bonus(id)
+	var hp: float = bonus.x
+	var stamina: float = bonus.y
 	stack.amount -= 1
 	if stack.amount <= 0:
 		stack.clear()
@@ -594,7 +595,7 @@ func _clear_effects() -> void:
 func _refresh_food() -> void:
 	if inventory == null or food_views.size() != 3:
 		return
-	for i in range(3):
+	for i in range(FoodRules.SLOT_COUNT):
 		var stack: ItemStack = inventory.get_slot(FIRST_FOOD_SLOT + i)
 		var effect: Dictionary = {}
 		for candidate in effects:
@@ -719,12 +720,12 @@ func _food_allowed(
 		lane: int,
 		item_id: StringName
 ) -> bool:
-	if lane < 0 or lane >= 3:
+	if lane < 0 or lane >= FoodRules.SLOT_COUNT:
 		return false
 
 	# Одинаковый запас нельзя держать
 	# в разных ячейках автопотребления.
-	for i in range(3):
+	for i in range(FoodRules.SLOT_COUNT):
 		if i == lane:
 			continue
 
@@ -758,7 +759,7 @@ func _food_allowed(
 func _normalize_food_stocks() -> void:
 	var changed := false
 
-	for i in range(3):
+	for i in range(FoodRules.SLOT_COUNT):
 		var stack: ItemStack = inventory.get_slot(
 			FIRST_FOOD_SLOT + i
 		)
@@ -925,7 +926,7 @@ func _hide_old_food_rows(node: Node) -> void:
 	# Detect their slot indices in addition to the named Food containers.
 	if node is InventorySlotUI:
 		var view := node as InventorySlotUI
-		if view.slot_index >= FIRST_FOOD_SLOT and view.slot_index < FIRST_FOOD_SLOT + 3:
+		if view.slot_index >= FIRST_FOOD_SLOT and view.slot_index < FIRST_FOOD_SLOT + FoodRules.SLOT_COUNT:
 			view.hide()
 		return
 	for child: Node in node.get_children():

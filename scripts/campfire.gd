@@ -69,12 +69,18 @@ var fuel_amount: int:
 
 func _ready() -> void:
 	add_to_group("campfire_interactable")
+	add_to_group("placeable_structure")
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	call_deferred("_below_prepare_integrity")
 	_update_flame()
 
 
 func _process(delta: float) -> void:
 	if delta <= 0.0:
+		return
+
+	_below_integrity_process(delta)
+	if _below_destroying:
 		return
 
 	var lit_seconds: float = _advance_fire(delta)
@@ -428,3 +434,254 @@ func _update_flame() -> void:
 
 	if light != null:
 		light.visible = burn_seconds > 0.0
+
+
+# BELOW_CAMPFIRE_INTEGRITY_V1
+signal campfire_destroyed
+
+@export_group("Прочность и обрушение")
+
+## Прочность костра, когда под ним стоит самый мягкий из блоков.
+@export_range(1, 10000000, 1) var minimum_campfire_health: int = 60
+
+## Во сколько раз прочность костра выше прочности блока, на котором он стоит.
+@export_range(2, 100, 1) var block_health_multiplier: int = 12
+
+## Сколько секунд костёр висит без опоры, прежде чем обрушиться.
+@export_range(0.1, 120.0, 0.1) var collapse_delay_seconds: float = 16.0
+
+## Рецепт, материалы которого возвращаются при обрушении.
+@export var campfire_recipe_path: String = "res://data/recipes/campfire.tres"
+
+var campfire_max_health: int = 60
+var campfire_health: int = 60
+var unsupported_seconds: float = 0.0
+var _below_terrain: Node2D
+var _below_ready: bool = false
+var _below_destroying: bool = false
+
+
+func _below_prepare_integrity() -> void:
+	_below_find_terrain()
+
+	var strongest: int = 1
+	if is_instance_valid(_below_terrain):
+		var types: Variant = _below_terrain.get("block_types")
+		if types is Array:
+			for block: Variant in types:
+				if block != null and bool(block.get("breakable")):
+					strongest = maxi(strongest, int(block.get("max_health")))
+
+	campfire_max_health = maxi(
+		minimum_campfire_health,
+		strongest * block_health_multiplier
+	)
+	campfire_health = campfire_max_health
+	_below_ready = true
+
+
+func _below_find_terrain() -> void:
+	var candidate: Node = get_tree().get_first_node_in_group("terrain")
+	if candidate is Node2D and candidate.has_method("get_block_type_at_cell"):
+		_below_terrain = candidate as Node2D
+		return
+
+	var scene: Node = get_tree().current_scene
+	if scene == null:
+		return
+
+	var nodes: Array[Node] = scene.find_children("*", "TileMapLayer", true, false)
+	for node: Node in nodes:
+		if node is Node2D and node.has_method("get_block_type_at_cell"):
+			_below_terrain = node as Node2D
+			return
+
+
+## Считает опору под костром и копит время свободного висения.
+func _below_integrity_process(delta: float) -> void:
+	if not _below_ready or _below_destroying:
+		return
+
+	if not is_instance_valid(_below_terrain):
+		_below_find_terrain()
+		return
+
+	var base_cell: Vector2i = _below_terrain.call(
+		"global_position_to_cell",
+		global_position
+	)
+	var block: Variant = _below_terrain.call(
+		"get_block_type_at_cell",
+		base_cell + Vector2i.DOWN
+	)
+
+	if block != null and bool(block.get("solid")):
+		unsupported_seconds = 0.0
+		return
+
+	unsupported_seconds += delta
+	if unsupported_seconds >= collapse_delay_seconds:
+		if not destroy_campfire():
+			unsupported_seconds = maxf(0.0, collapse_delay_seconds - 1.0)
+
+
+func receive_structure_damage(amount: int) -> bool:
+	if _below_destroying or amount <= 0:
+		return false
+
+	if not _below_ready:
+		_below_prepare_integrity()
+
+	campfire_health = maxi(0, campfire_health - amount)
+	if campfire_health == 0:
+		if not destroy_campfire():
+			campfire_health = 1
+
+	return true
+
+
+## Собирает всё содержимое костра: сырьё, готовое и незожжённое топливо.
+func _below_collect_contents() -> Dictionary:
+	var totals: Dictionary = {}
+
+	for i: int in range(SLOT_COUNT):
+		_below_add_item(totals, input_ids[i], 1)
+		_below_add_item(totals, output_ids[i], 1)
+		_below_add_item(totals, fuel_ids[i], fuel_amounts[i])
+
+	return totals
+
+
+func _below_add_item(totals: Dictionary, item_id: StringName, amount: int) -> void:
+	if item_id == &"" or amount <= 0:
+		return
+
+	var key := StringName(str(item_id))
+	totals[key] = int(totals.get(key, 0)) + amount
+
+
+## Возвращает материалы, из которых костёр был скрафчен.
+func _below_get_refund() -> Dictionary:
+	var amounts: Dictionary = {}
+
+	if not ResourceLoader.exists(campfire_recipe_path):
+		push_error("Костёр: не найден рецепт: " + campfire_recipe_path)
+		return amounts
+
+	var recipe: Resource = load(campfire_recipe_path)
+	if recipe == null:
+		return amounts
+
+	var pattern: Variant = recipe.get("pattern")
+	if not pattern is Array:
+		push_error("Костёр: рецепт не содержит массив pattern.")
+		return amounts
+
+	var output_count: int = 1
+	for property: Dictionary in recipe.get_property_list():
+		if String(property.get("name", "")) == "output_amount":
+			output_count = maxi(1, int(recipe.get("output_amount")))
+
+	for ingredient: Variant in pattern:
+		_below_add_item(amounts, StringName(str(ingredient)), 1)
+
+	for key: Variant in amounts.keys():
+		# Текущий рецепт создаёт один костёр; дробный возврат означал бы ошибку в рецепте.
+		if int(amounts[key]) % output_count != 0:
+			push_error("Костёр: дробный возврат материалов — проверь настройки рецепта.")
+			return {}
+		amounts[key] = int(amounts[key]) / output_count
+
+	return amounts
+
+
+## Обрушивает костёр: выкладывает содержимое и материалы крафта в мир.
+func destroy_campfire() -> bool:
+	if _below_destroying:
+		return false
+
+	var refund: Dictionary = _below_get_refund()
+	if refund.is_empty():
+		push_error("Костёр оставлен на месте: невозможно вернуть материалы крафта.")
+		return false
+
+	var totals: Dictionary = refund.duplicate(true)
+	var contents: Dictionary = _below_collect_contents()
+	for key: Variant in contents.keys():
+		_below_add_item(totals, StringName(str(key)), int(contents[key]))
+
+	var pickup_scene: PackedScene = null
+	if is_instance_valid(_below_terrain):
+		pickup_scene = _below_terrain.get("item_pickup_scene") as PackedScene
+
+	if pickup_scene == null:
+		for path: String in [
+			"res://data/items/item_pickup.tscn",
+			"res://items/item_pickup.tscn",
+		]:
+			if ResourceLoader.exists(path):
+				pickup_scene = load(path) as PackedScene
+				if pickup_scene != null:
+					break
+
+	if pickup_scene == null:
+		push_error("Костёр: не найдена сцена выпадаемого предмета. Костёр не удалён.")
+		return false
+
+	var prepared: Array[Node2D] = []
+	for key: Variant in totals.keys():
+		var item: ItemData = ItemRegistry.get_item(StringName(str(key)))
+		if item == null:
+			for node: Node2D in prepared:
+				node.free()
+			push_error("Костёр: предмет не зарегистрирован: " + str(key))
+			return false
+
+		var remaining: int = int(totals[key])
+		while remaining > 0:
+			var count: int = mini(remaining, maxi(1, item.max_stack))
+			var instance: Node = pickup_scene.instantiate()
+			if not instance is Node2D or not instance.has_method("setup"):
+				instance.free()
+				for node: Node2D in prepared:
+					node.free()
+				push_error("Костёр: сцена дропа должна быть Node2D с методом setup.")
+				return false
+
+			instance.call("setup", StringName(str(key)), count)
+			prepared.append(instance as Node2D)
+			remaining -= count
+
+	var parent: Node = get_parent()
+	if parent == null:
+		for node: Node2D in prepared:
+			node.free()
+		return false
+
+	_below_destroying = true
+	_below_clear_contents()
+
+	for i: int in range(prepared.size()):
+		var pickup: Node2D = prepared[i]
+		parent.add_child(pickup)
+		pickup.global_position = global_position + Vector2(
+			float(i % 5 - 2) * 4.0,
+			-12.0 - float(i / 5) * 3.0
+		)
+
+	campfire_destroyed.emit()
+	queue_free()
+	return true
+
+
+func _below_clear_contents() -> void:
+	for i: int in range(SLOT_COUNT):
+		input_ids[i] = &""
+		output_ids[i] = &""
+		cook_progress[i] = 0.0
+		ready_progress[i] = 0.0
+		fuel_ids[i] = &""
+		fuel_amounts[i] = 0
+
+	burn_seconds = 0.0
+	_update_flame()
