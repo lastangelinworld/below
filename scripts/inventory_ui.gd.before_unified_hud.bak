@@ -54,8 +54,6 @@ func _ready() -> void:
 	for i in range(9):
 		craft_slots.append(ItemStack.new())
 	call_deferred("_connect_player")
-	# below_unified_hud_v1
-	call_deferred("_below_install_unified_hud")
 
 func _process(_delta: float) -> void:
 	if overlay.visible:
@@ -106,7 +104,7 @@ func open_inventory() -> void:
 		return
 	_previous_pause = get_tree().paused
 	overlay.visible = true
-	pass
+	get_tree().paused = true
 	_refresh_all()
 
 func close_inventory() -> void:
@@ -118,7 +116,7 @@ func close_inventory() -> void:
 
 	_return_loose_items()
 	overlay.visible = false
-	pass
+	get_tree().paused = _previous_pause
 
 func set_selected_hotbar(index: int) -> void:
 	selected_hotbar = clampi(index, 0, 8)
@@ -558,12 +556,3 @@ func _return_loose_items() -> void:
 		if accepted < stack.amount:
 			_spawn_dropped(stack.item_id, stack.amount - accepted)
 	_refresh_all()
-
-
-func _below_install_unified_hud() -> void:
-	if has_node("UnifiedHotbarFoodController"):
-		return
-	var helper_script: Script = load("res://scripts/ui/hotbar_food_controller.gd") as Script
-	var helper: Node = helper_script.new()
-	helper.name = "UnifiedHotbarFoodController"
-	add_child(helper)

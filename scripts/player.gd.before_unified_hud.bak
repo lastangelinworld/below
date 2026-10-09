@@ -1268,7 +1268,20 @@ func get_food_slot(slot_index: int) -> Dictionary:
 ## Адаптер для панели быстрого доступа.
 ## Передаёт команду употребления еды в HotbarFoodController.
 func below_consume_food_from_slot(slot_index: int) -> bool:
-	var system: Node = get_tree().get_first_node_in_group("below_food_runtime")
-	if system == null or not system.has_method("consume_from_slot"):
+	var system: Node = get_tree().get_first_node_in_group(
+		"below_food_runtime"
+	)
+
+	if system == null:
 		return false
-	return bool(system.call("consume_from_slot", slot_index, false))
+
+	if not system.has_method("consume_from_slot"):
+		return false
+
+	return bool(
+		system.call(
+			"consume_from_slot",
+			slot_index,
+			false
+		)
+	)

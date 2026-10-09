@@ -33,7 +33,6 @@ var refresh_elapsed := 0.0
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	call_deferred("_late_ready")
-	add_to_group("below_interaction_windows")
 
 
 func _late_ready() -> void:

@@ -8,7 +8,6 @@ extends Resource
 func setup(new_slot_count: int = -1, clear_existing: bool = true) -> void:
 	if new_slot_count > 0:
 		slot_count = new_slot_count
-	slot_count = maxi(slot_count, 39)
 	if clear_existing:
 		slots.clear()
 	while slots.size() < slot_count:
@@ -61,8 +60,7 @@ func get_addable_amount(item_id: StringName, requested_amount: int) -> int:
 		push_warning("Предмет не зарегистрирован: %s" % item_id)
 		return 0
 	var capacity := 0
-	for slot_index in range(mini(36, slots.size())):
-		var stack: ItemStack = get_slot(slot_index)
+	for stack in slots:
 		if stack == null or stack.is_empty():
 			capacity += item.max_stack
 		elif stack.item_id == item_id:
@@ -80,8 +78,7 @@ func add_item(item_id: StringName, amount: int) -> int:
 	if item == null:
 		return 0
 	var remaining := accepted
-	for slot_index in range(mini(36, slots.size())):
-		var stack: ItemStack = get_slot(slot_index)
+	for stack in slots:
 		if remaining <= 0:
 			break
 		if stack == null or stack.is_empty() or stack.item_id != item_id:
@@ -89,7 +86,7 @@ func add_item(item_id: StringName, amount: int) -> int:
 		var portion := mini(maxi(item.max_stack - stack.amount, 0), remaining)
 		stack.amount += portion
 		remaining -= portion
-	for i in range(mini(36, slots.size())):
+	for i in range(slots.size()):
 		if remaining <= 0:
 			break
 		var stack := get_slot(i)
