@@ -784,8 +784,6 @@ func _is_cell_in_mining_reach(cell_coordinates: Vector2i) -> bool:
 
 
 func _on_pickaxe_hit() -> void:
-	if _below_try_damage_chest():
-		return
 	if terrain == null or terrain.tile_set == null:
 		return
 
@@ -1274,29 +1272,3 @@ func below_consume_food_from_slot(slot_index: int) -> bool:
 	if system == null or not system.has_method("consume_from_slot"):
 		return false
 	return bool(system.call("consume_from_slot", slot_index, false))
-
-
-# BELOW_CHEST_MINING_V1
-func _below_try_damage_chest() -> bool:
-	if terrain == null or terrain.tile_set == null:
-		return false
-	var cells: Array[Vector2i] = _get_attack_mining_cells()
-	# Непроходимая коллизия сундуку не нужна: ищем его по группе.
-	for candidate: Node in get_tree().get_nodes_in_group("storage_chest"):
-		if not candidate is Node2D or candidate.is_queued_for_deletion():
-			continue
-		if not candidate.has_method("receive_structure_damage"):
-			continue
-		var chest: Node2D = candidate as Node2D
-		var chest_cell: Vector2i = terrain.global_position_to_cell(chest.global_position)
-		for cell: Vector2i in cells:
-			if not is_cell_mineable(cell):
-				continue
-			var center: Vector2 = terrain.to_global(terrain.map_to_local(cell))
-			var local_center: Vector2 = chest.to_local(center)
-			if cell == chest_cell or Rect2(-16.0, -28.0, 32.0, 28.0).has_point(local_center):
-				# Отладочное уничтожение блоков с одного удара здесь НЕ действует.
-				chest.call("receive_structure_damage", maxi(1, mining_damage))
-				# Удар в сундук не повреждает одновременно его опору.
-				return true
-	return false
