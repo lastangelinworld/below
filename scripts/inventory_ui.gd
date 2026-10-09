@@ -27,6 +27,8 @@ extends CanvasLayer
 @onready var carry_icon: TextureRect = $CarryPreview/Panel/Icon
 @onready var carry_amount: Label = $CarryPreview/Panel/Amount
 
+var external_handler: Node
+
 var player: Node
 var inventory: InventoryData
 var carried := ItemStack.new()
@@ -106,6 +108,12 @@ func open_inventory() -> void:
 	_refresh_all()
 
 func close_inventory() -> void:
+	# Если открыт костёр или сундук, сначала нужно
+	# восстановить обычную колонку крафта.
+	if is_instance_valid(external_handler):
+		external_handler.call("close_window")
+		return
+
 	_return_loose_items()
 	overlay.visible = false
 	get_tree().paused = _previous_pause
@@ -304,8 +312,26 @@ func _on_inventory_hover(index: int, entered: bool) -> void:
 func _on_craft_hover(index: int, entered: bool) -> void:
 	hovered_craft_slot = index if entered else (-1 if hovered_craft_slot == index else hovered_craft_slot)
 
-func _on_inventory_slot_pressed(index: int, button: MouseButton) -> void:
-	_handle_stack_click(inventory.get_slot(index), button, func(): inventory.notify_changed(), func(amount: int): carried = inventory.take_from_slot(index, amount))
+func _on_inventory_slot_pressed(
+		index: int,
+		button: MouseButton
+) -> void:
+	if is_instance_valid(external_handler):
+		if button == MOUSE_BUTTON_LEFT:
+			if Input.is_key_pressed(KEY_SHIFT):
+				external_handler.call(
+					"quick_transfer_player",
+					index
+				)
+				return
+
+	_handle_stack_click(
+		inventory.get_slot(index),
+		button,
+		func(): inventory.notify_changed(),
+		func(amount: int):
+			carried = inventory.take_from_slot(index, amount)
+	)
 
 func _on_craft_slot_pressed(index: int, button: MouseButton) -> void:
 	var target := craft_slots[index]

@@ -1,33 +1,33 @@
 class_name GameplayInteractions
 extends Node
 
-const INTERACTION_DISTANCE: float = 110.0
-const UI_REFRESH_INTERVAL: float = 0.15
+const INTERACTION_DISTANCE := 110.0
+const UI_REFRESH_INTERVAL := 0.10
 
 var player: Node2D
 var inventory: InventoryData
+var ui: InventoryUI
+
 var active_target: Node2D
+var mode := ""
 
-var mode: String = ""
-var previous_pause: bool = false
-var refresh_elapsed: float = 0.0
+var panel: VBoxContainer
+var craft_column: Control
+var hidden_controls: Dictionary = {}
 
-var overlay: ColorRect
 var title_label: Label
 var timer_label: Label
-var object_grid: GridContainer
-var player_grid: GridContainer
-var fuel_button: Button
 var hint_label: Label
 
-var object_buttons: Array[Button] = []
-var player_buttons: Array[Button] = []
+var input_views: Array[InventorySlotUI] = []
+var output_views: Array[InventorySlotUI] = []
+var fuel_views: Array[InventorySlotUI] = []
+var chest_views: Array[InventorySlotUI] = []
 
-# Независимый стак окна объекта; InventoryUI не изменяется.
-var carried: ItemStack = ItemStack.new()
-var carried_preview: HBoxContainer
-var carried_icon: TextureRect
-var carried_label: Label
+var fuel_bars: Array[ProgressBar] = []
+var fuel_labels: Array[Label] = []
+
+var refresh_elapsed := 0.0
 
 
 func _ready() -> void:
@@ -36,24 +36,42 @@ func _ready() -> void:
 
 
 func _late_ready() -> void:
-	player = get_tree().get_first_node_in_group("player") as Node2D
+	_find_dependencies()
+
+	var layer := CanvasLayer.new()
+	add_child(layer)
+
+	hint_label = Label.new()
+	hint_label.position = Vector2(24, 100)
+	hint_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hint_label.visible = false
+	layer.add_child(hint_label)
+
+
+func _find_dependencies() -> bool:
+	ui = get_tree().get_first_node_in_group(
+		"inventory_ui"
+	) as InventoryUI
+
+	player = get_tree().get_first_node_in_group(
+		"player"
+	) as Node2D
 
 	if player == null and get_tree().current_scene != null:
 		player = get_tree().current_scene.find_child(
 			"Player", true, false
 		) as Node2D
 
-	if player != null:
-		inventory = player.get("inventory") as InventoryData
+	if ui == null or player == null:
+		return false
 
-	_build_ui()
+	inventory = player.get("inventory") as InventoryData
+
+	return inventory != null and ui.slot_scene != null
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if overlay == null:
-		return
-
-	if overlay.visible and event.is_action_pressed("ui_cancel"):
+	if panel != null and event.is_action_pressed("ui_cancel"):
 		close_window()
 		get_viewport().set_input_as_handled()
 		return
@@ -61,27 +79,34 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not InputMap.has_action("interact"):
 		return
 
-	if event.is_action_pressed("interact"):
-		if event is InputEventKey and event.echo:
-			return
+	if not event.is_action_pressed("interact"):
+		return
 
-		if overlay.visible:
-			close_window()
-		else:
-			_try_interact()
+	if event is InputEventKey and event.echo:
+		return
 
-		get_viewport().set_input_as_handled()
+	if panel != null:
+		close_window()
+	elif not get_tree().paused and not _inventory_is_open():
+		_try_interact()
+
+	get_viewport().set_input_as_handled()
 
 
 func _process(delta: float) -> void:
-	_refresh_carried_preview()
-	if overlay == null:
-		return
-
-	if overlay.visible:
+	if hint_label != null:
 		hint_label.visible = false
 
+	if panel != null:
 		if not is_instance_valid(active_target):
+			close_window()
+			return
+
+		if not is_instance_valid(player):
+			close_window()
+			return
+
+		if bool(player.get("is_dead")):
 			close_window()
 			return
 
@@ -93,48 +118,51 @@ func _process(delta: float) -> void:
 
 		return
 
-	hint_label.visible = false
-
 	if get_tree().paused or _inventory_is_open():
 		return
 
-	if player == null or bool(player.get("is_dead")):
+	if not is_instance_valid(player):
+		return
+
+	if bool(player.get("is_dead")):
 		return
 
 	var nearest: Node2D = _nearest_interactable()
 
-	if nearest == null:
-		return
-
-	hint_label.visible = true
-	hint_label.text = (
-        "E — открыть сундук"
-		if nearest.is_in_group("storage_chest")
-		else "E — открыть костёр"
-	)
+	if nearest != null and hint_label != null:
+		hint_label.visible = true
+		hint_label.text = (
+			"E — открыть сундук"
+			if nearest.is_in_group("storage_chest")
+			else "E — открыть костёр"
+		)
 
 
 func _inventory_is_open() -> bool:
-	var ui: Node = get_tree().get_first_node_in_group("inventory_ui")
-
-	if ui != null and ui.has_method("is_inventory_open"):
-		return bool(ui.call("is_inventory_open"))
-
-	return false
+	return (
+		is_instance_valid(ui)
+		and ui.is_inventory_open()
+	)
 
 
 func _nearest_interactable() -> Node2D:
-	if player == null:
+	if not is_instance_valid(player):
 		return null
 
-	var best: Node2D = null
+	var best: Node2D
 	var best_distance: float = INTERACTION_DISTANCE
 
-	for group_name in ["storage_chest", "campfire_interactable"]:
-		for node in get_tree().get_nodes_in_group(group_name):
-			var candidate: Node2D = node as Node2D
+	for group_name: String in [
+		"storage_chest",
+		"campfire_interactable"
+	]:
+		for node: Node in get_tree().get_nodes_in_group(group_name):
+			var candidate := node as Node2D
 
 			if candidate == null:
+				continue
+
+			if not (candidate is Campfire or candidate is ChestContainer):
 				continue
 
 			var distance: float = player.global_position.distance_to(
@@ -149,315 +177,448 @@ func _nearest_interactable() -> Node2D:
 
 
 func _try_interact() -> void:
-	if player == null or bool(player.get("is_dead")):
+	if not _find_dependencies():
+		push_warning(
+			"GameplayInteractions: не найден Player, "
+			+ "InventoryUI, InventoryData или slot_scene."
+		)
 		return
 
-	if get_tree().paused or _inventory_is_open():
-		return
-
-	if inventory == null:
-		inventory = player.get("inventory") as InventoryData
-
-	if inventory == null:
-		push_warning("GameplayInteractions: инвентарь игрока не найден")
+	if bool(player.get("is_dead")):
 		return
 
 	var target: Node2D = _nearest_interactable()
 
-	if target == null:
+	if target != null:
+		_open_target(target)
+
+
+func _open_target(target: Node2D) -> void:
+	if panel != null or ui.is_inventory_open():
+		return
+
+	# В предоставленном InventoryUI:
+	# CraftColumn -> CraftRow -> CraftGrid.
+	craft_column = ui.craft_grid.get_parent().get_parent() as Control
+
+	if craft_column == null:
+		push_error("GameplayInteractions: CraftColumn не найдена.")
 		return
 
 	active_target = target
-	mode = (
-        "chest"
-		if active_target.is_in_group("storage_chest")
-		else "campfire"
-	)
+	mode = "campfire" if target is Campfire else "chest"
 
-	previous_pause = get_tree().paused
-	get_tree().paused = true
+	# Сохраняем видимость обычных элементов крафта.
+	hidden_controls.clear()
 
-	overlay.visible = true
-	hint_label.visible = false
-	refresh_elapsed = 0.0
+	for child: Node in craft_column.get_children():
+		if child is Control:
+			hidden_controls[child] = child.visible
+			child.hide()
 
-	_refresh_ui()
-
-
-func close_window() -> void:
-	if overlay == null or not overlay.visible:
-		return
-
-	if not _return_carried():
-		push_warning("Нет места для стака в руке. Сначала положите его в ячейку.")
-		return
-
-	overlay.visible = false
-	active_target = null
-	mode = ""
-
-	get_tree().paused = previous_pause
-
-
-func _build_ui() -> void:
-	var layer := CanvasLayer.new()
-	layer.layer = 80
-	add_child(layer)
-
-	overlay = ColorRect.new()
-	overlay.color = Color(0.0, 0.0, 0.0, 0.65)
-	layer.add_child(overlay)
-	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-
-	var center := CenterContainer.new()
-	overlay.add_child(center)
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-
-	var window := PanelContainer.new()
-	window.custom_minimum_size = Vector2(720, 560)
-	center.add_child(window)
-
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 20)
-	margin.add_theme_constant_override("margin_right", 20)
-	margin.add_theme_constant_override("margin_top", 16)
-	margin.add_theme_constant_override("margin_bottom", 16)
-	window.add_child(margin)
-
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
-	margin.add_child(box)
+	panel = VBoxContainer.new()
+	panel.add_theme_constant_override("separation", 8)
+	craft_column.add_child(panel)
 
 	title_label = Label.new()
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title_label.add_theme_font_size_override("font_size", 24)
-	box.add_child(title_label)
+	panel.add_child(title_label)
 
 	timer_label = Label.new()
 	timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(timer_label)
+	panel.add_child(timer_label)
 
-	object_grid = GridContainer.new()
-	object_grid.columns = 4
-	box.add_child(object_grid)
+	if mode == "campfire":
+		_add_heading("СЫРОЕ МЯСО")
+		_build_grid(input_views, 5, "raw", 5)
 
-	fuel_button = Button.new()
-	fuel_button.custom_minimum_size = Vector2(180, 44)
-	fuel_button.gui_input.connect(_on_fuel_gui_input)
-	fuel_button.focus_mode = Control.FOCUS_NONE
-	box.add_child(fuel_button)
+		panel.add_child(HSeparator.new())
 
-	var player_title := Label.new()
-	player_title.text = "ИНВЕНТАРЬ ИГРОКА"
-	box.add_child(player_title)
+		_add_heading("ГОТОВАЯ ПРОДУКЦИЯ")
+		_build_grid(output_views, 5, "output", 5)
 
-	player_grid = GridContainer.new()
-	player_grid.columns = 9
-	box.add_child(player_grid)
+		panel.add_child(HSeparator.new())
+
+		_add_heading("ТОПЛИВО")
+		_build_fuel_grid()
+	else:
+		var chest := target as ChestContainer
+		chest._ensure_storage()
+		_build_grid(
+			chest_views,
+			chest.storage_size,
+			"chest",
+			4
+		)
 
 	var instructions := Label.new()
-	instructions.text = "Костёр: ЛКМ — взять/положить стак. ПКМ на топливо — положить 1.\nСундук: клик снизу — положить, клик сверху — забрать."
-	box.add_child(instructions)
+	instructions.text = (
+		"ЛКМ — взять / положить стак\n"
+		+ "ПКМ — положить 1\n"
+		+ "Мясо — только 1 в ячейку\n"
+		+ "Shift + ЛКМ — быстрый перенос"
+	)
+	panel.add_child(instructions)
 
 	var close_button := Button.new()
 	close_button.text = "Закрыть (E / Esc)"
 	close_button.pressed.connect(close_window)
-	box.add_child(close_button)
+	panel.add_child(close_button)
 
-	hint_label = Label.new()
-	hint_label.position = Vector2(24, 100)
-	hint_label.add_theme_font_size_override("font_size", 18)
-	hint_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hint_label.visible = false
-	layer.add_child(hint_label)
-
-	var preview_layer := CanvasLayer.new()
-	preview_layer.layer = 81
-	add_child(preview_layer)
-	carried_preview = HBoxContainer.new()
-	carried_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	preview_layer.add_child(carried_preview)
-	carried_icon = TextureRect.new()
-	carried_icon.custom_minimum_size = Vector2(32, 32)
-	carried_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	carried_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	carried_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	carried_preview.add_child(carried_icon)
-	carried_label = Label.new()
-	carried_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	carried_preview.add_child(carried_label)
-	carried_preview.visible = false
-	overlay.visible = false
+	ui.external_handler = self
+	ui.open_inventory()
+	refresh_elapsed = 0.0
+	_refresh_ui()
 
 
-func _ensure_buttons(
-		grid: GridContainer,
-		views: Array[Button],
+func _add_heading(text: String) -> void:
+	var label := Label.new()
+	label.text = text
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	panel.add_child(label)
+
+
+func _build_grid(
+		views: Array[InventorySlotUI],
 		count: int,
-		for_player: bool
+		kind: String,
+		columns: int
 ) -> void:
-	if views.size() == count:
+	var grid := GridContainer.new()
+	grid.columns = columns
+	panel.add_child(grid)
+
+	for i: int in range(count):
+		var view := ui.slot_scene.instantiate() as InventorySlotUI
+		view.setup(i)
+		grid.add_child(view)
+		view.slot_pressed.connect(
+			_on_slot_pressed.bind(kind)
+		)
+		views.append(view)
+
+
+func _build_fuel_grid() -> void:
+	var grid := GridContainer.new()
+	grid.columns = 5
+	panel.add_child(grid)
+
+	for i: int in range(5):
+		var box := VBoxContainer.new()
+		grid.add_child(box)
+
+		var view := ui.slot_scene.instantiate() as InventorySlotUI
+		view.setup(i)
+		box.add_child(view)
+		view.slot_pressed.connect(
+			_on_slot_pressed.bind("fuel")
+		)
+		fuel_views.append(view)
+
+		var bar := ProgressBar.new()
+		bar.min_value = 0.0
+		bar.max_value = 1.0
+		bar.show_percentage = false
+		bar.custom_minimum_size.y = 6
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(bar)
+		fuel_bars.append(bar)
+
+		var label := Label.new()
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.add_theme_font_size_override("font_size", 10)
+		box.add_child(label)
+		fuel_labels.append(label)
+
+
+func close_window() -> void:
+	if panel == null:
 		return
 
-	for child in grid.get_children():
-		grid.remove_child(child)
-		child.queue_free()
+	# Убираем обработчик до вызова close_inventory(),
+	# иначе получится повторный вызов close_window().
+	if is_instance_valid(ui):
+		ui.external_handler = null
+		ui.close_inventory()
 
-	views.clear()
+	for child: Variant in hidden_controls:
+		if is_instance_valid(child):
+			child.visible = bool(hidden_controls[child])
 
-	for i in range(count):
-		var button := Button.new()
-		button.custom_minimum_size = Vector2(64, 52)
-		button.expand_icon = true
-		button.add_theme_constant_override("icon_max_width", 28)
+	hidden_controls.clear()
 
-		if for_player:
-			button.gui_input.connect(_on_player_gui_input.bind(i))
-			button.focus_mode = Control.FOCUS_NONE
-		else:
-			button.pressed.connect(_on_object_slot_pressed.bind(i))
+	if is_instance_valid(panel):
+		var parent: Node = panel.get_parent()
+		if parent != null:
+			parent.remove_child(panel)
+		panel.queue_free()
 
-		grid.add_child(button)
-		views.append(button)
+	panel = null
+	craft_column = null
+	active_target = null
+	mode = ""
+
+	input_views.clear()
+	output_views.clear()
+	fuel_views.clear()
+	chest_views.clear()
+
+	fuel_bars.clear()
+	fuel_labels.clear()
 
 
-func _set_button(
-		button: Button,
+func _display(
+		view: InventorySlotUI,
 		item_id: StringName,
-		amount: int,
-		clickable: bool
+		amount: int
 ) -> void:
-	button.icon = null
-	button.tooltip_text = ""
-	button.disabled = not clickable
-
-	if item_id == &"" or amount <= 0:
-		button.text = "—"
-		return
-
-	var item: ItemData = ItemRegistry.get_item(item_id)
-	var item_name: String = (
-		item.display_name if item != null else str(item_id)
-	)
-
-	button.tooltip_text = "%s × %d" % [item_name, amount]
-
-	if item != null and item.icon != null:
-		button.icon = item.icon
-		button.text = str(amount)
-	else:
-		button.text = "%s\n×%d" % [item_name.substr(0, 10), amount]
+	var stack := ItemStack.new()
+	stack.item_id = item_id
+	stack.amount = amount
+	view.display_stack(stack)
 
 
 func _refresh_ui() -> void:
-	if not is_instance_valid(active_target):
-		close_window()
+	if panel == null or not is_instance_valid(active_target):
 		return
 
-	if mode == "chest":
-		var chest: ChestContainer = active_target as ChestContainer
+	if mode == "campfire":
+		var fire := active_target as Campfire
 
-		if chest == null:
-			close_window()
+		title_label.text = "КОСТЁР"
+		timer_label.text = "До затухания: " + fire.get_timer_text()
+
+		for i: int in range(5):
+			_display(input_views[i], fire.input_ids[i], 1)
+			_display(output_views[i], fire.output_ids[i], 1)
+			_display(
+				fuel_views[i],
+				fire.fuel_ids[i],
+				fire.fuel_amounts[i]
+			)
+
+			# Для топлива показываем даже очередь из 1 единицы.
+			fuel_views[i].amount_label.text = (
+				str(fire.fuel_amounts[i])
+				if fire.fuel_amounts[i] > 0
+				else ""
+			)
+
+			fuel_bars[i].value = fire.get_fuel_progress(i)
+			fuel_labels[i].text = (
+				Campfire.format_seconds(
+					fire.active_fuel_seconds[i]
+				)
+				if fire.active_fuel_seconds[i] > 0.0
+				else "—"
+			)
+
+			fuel_views[i].tooltip_text += (
+				"\nОжидает: %d" % fire.fuel_amounts[i]
+			)
+
+			if fire.active_fuel_seconds[i] > 0.0:
+				var item: ItemData = ItemRegistry.get_item(
+					fire.active_fuel_ids[i]
+				)
+				var item_name: String = (
+					item.display_name
+					if item != null
+					else str(fire.active_fuel_ids[i])
+				)
+
+				fuel_views[i].tooltip_text += (
+					"\nГорит: %s\nОсталось: %s"
+					% [item_name, fuel_labels[i].text]
+				)
+
+			if fire.input_ids[i] != &"":
+				input_views[i].tooltip_text += (
+					"\nДо готовности: %s"
+					% Campfire.format_seconds(
+						Campfire.COOK_SECONDS
+						- fire.cook_progress[i]
+					)
+				)
+
+			if fire.output_ids[i] == &"cooked_meat":
+				output_views[i].tooltip_text += (
+					"\nДо превращения в уголь: %s"
+					% Campfire.format_seconds(
+						Campfire.READY_SECONDS
+						- fire.ready_progress[i]
+					)
+				)
+	else:
+		var chest := active_target as ChestContainer
+		title_label.text = "СУНДУК — %d ЯЧЕЕК" % chest.storage_size
+		timer_label.text = ""
+
+		for i: int in range(chest.storage_size):
+			_display(
+				chest_views[i],
+				chest.storage_ids[i],
+				chest.storage_amounts[i]
+			)
+
+
+func _on_slot_pressed(
+		index: int,
+		button: MouseButton,
+		kind: String
+) -> void:
+	if not is_instance_valid(active_target):
+		return
+
+	if button == MOUSE_BUTTON_LEFT:
+		if Input.is_key_pressed(KEY_SHIFT) and ui.carried.is_empty():
+			_quick_from_object(index, kind)
+			ui._refresh_all()
+			_refresh_ui()
 			return
 
-		title_label.text = "СУНДУК — %d ЯЧЕЕК" % chest.storage_size
-		timer_label.text = "Нажмите заполненную ячейку, чтобы забрать"
-		fuel_button.visible = false
-		object_grid.columns = 4
-
-		_ensure_buttons(
-			object_grid, object_buttons, chest.storage_size, false
-		)
-
-		for i in range(chest.storage_size):
-			_set_button(
-				object_buttons[i],
-				chest.storage_ids[i],
-				chest.storage_amounts[i],
-				true
-			)
+	if ui.carried.is_empty():
+		_pick_from_object(index, button, kind)
 	else:
-		_refresh_fire()
+		_put_into_object(index, button, kind)
 
-	if inventory == null:
-		return
+	ui._refresh_all()
+	_refresh_ui()
 
-	_ensure_buttons(
-		player_grid, player_buttons, inventory.slots.size(), true
+
+func _pick_from_object(
+		index: int,
+		button: MouseButton,
+		kind: String
+) -> void:
+	var result: Dictionary = {}
+
+	if kind == "chest":
+		var chest := active_target as ChestContainer
+		var count: int = chest.storage_amounts[index]
+
+		if button == MOUSE_BUTTON_RIGHT:
+			count = ceili(float(count) / 2.0)
+
+		result = chest.take_items(index, count)
+	else:
+		var fire := active_target as Campfire
+
+		match kind:
+			"raw":
+				result = fire.take_raw_meat(index)
+
+			"output":
+				result = fire.collect_output(index)
+
+			"fuel":
+				var count: int = fire.fuel_amounts[index]
+
+				if button == MOUSE_BUTTON_RIGHT:
+					count = ceili(float(count) / 2.0)
+
+				result = fire.take_fuel(index, count)
+
+	if not result.is_empty():
+		ui.carried.item_id = StringName(result["item_id"])
+		ui.carried.amount = int(result["amount"])
+
+
+func _put_into_object(
+		index: int,
+		button: MouseButton,
+		kind: String
+) -> void:
+	var requested: int = (
+		ui.carried.amount
+		if button == MOUSE_BUTTON_LEFT
+		else 1
 	)
+	var moved := 0
 
-	for i in range(inventory.slots.size()):
-		var stack: ItemStack = inventory.get_slot(i)
-
-		if stack == null or stack.is_empty():
-			_set_button(player_buttons[i], &"", 0, mode == "campfire")
-		else:
-			_set_button(
-				player_buttons[i], stack.item_id, stack.amount, true
-			)
-
-
-func _refresh_fire() -> void:
-	title_label.text = "КОСТЁР"
-	timer_label.text = "До затухания: %s" % str(
-		active_target.call("get_timer_text")
-	)
-
-	fuel_button.visible = true
-	object_grid.columns = 5
-
-	var fuel_id: StringName = StringName(active_target.get("fuel_id"))
-	var fuel_amount: int = int(active_target.get("fuel_amount"))
-
-	_set_button(fuel_button, fuel_id, fuel_amount, true)
-	fuel_button.text = "Топливо: " + fuel_button.text
-
-	var input_ids: Array = active_target.get("input_ids")
-	var output_ids: Array = active_target.get("output_ids")
-	var progress: Array = active_target.get("cook_progress")
-	var cook_seconds: float = float(active_target.get("COOK_SECONDS"))
-
-	_ensure_buttons(object_grid, object_buttons, 10, false)
-
-	for i in range(5):
-		var input_id: StringName = StringName(input_ids[i])
-
-		_set_button(
-			object_buttons[i],
-			input_id,
-			1 if input_id != &"" else 0,
-			false
+	if kind == "chest":
+		var chest := active_target as ChestContainer
+		var item: ItemData = ItemRegistry.get_item(
+			ui.carried.item_id
 		)
 
-		if input_id != &"":
-			var remaining: float = maxf(
-				0.0, cook_seconds - float(progress[i])
+		if item == null:
+			return
+
+		if chest.storage_amounts[index] <= 0:
+			moved = mini(requested, item.max_stack)
+
+			if moved > 0:
+				chest.storage_ids[index] = ui.carried.item_id
+				chest.storage_amounts[index] = moved
+
+		elif chest.storage_ids[index] == ui.carried.item_id:
+			moved = mini(
+				requested,
+				maxi(
+					0,
+					item.max_stack - chest.storage_amounts[index]
+				)
 			)
-			object_buttons[i].text += "\n%.1f с" % remaining
+			chest.storage_amounts[index] += moved
 
-		var output_id: StringName = StringName(output_ids[i])
+		elif button == MOUSE_BUTTON_LEFT:
+			var old_id: StringName = chest.storage_ids[index]
+			var old_amount: int = chest.storage_amounts[index]
 
-		_set_button(
-			object_buttons[5 + i],
-			output_id,
-			1 if output_id != &"" else 0,
-			true
-		)
+			chest.storage_ids[index] = ui.carried.item_id
+			chest.storage_amounts[index] = ui.carried.amount
+
+			ui.carried.item_id = old_id
+			ui.carried.amount = old_amount
+			return
+	else:
+		var fire := active_target as Campfire
+
+		match kind:
+			"raw":
+				if ui.carried.item_id == &"raw_meat":
+					# Всегда максимум один кусок,
+					# независимо от кнопки мыши.
+					moved = fire.put_raw_meat(index)
+
+			"fuel":
+				moved = fire.add_fuel_to_slot(
+					index,
+					ui.carried.item_id,
+					requested
+				)
+
+			"output":
+				# В нижний ряд предметы не помещаются.
+				# Можно только добавить готовый результат
+				# к совместимому стаку в руке.
+				var output_id: StringName = fire.output_ids[index]
+
+				if output_id == &"":
+					return
+
+				if output_id != ui.carried.item_id:
+					return
+
+				var item: ItemData = ItemRegistry.get_item(output_id)
+				if item == null or ui.carried.amount >= item.max_stack:
+					return
+
+				var result: Dictionary = fire.collect_output(index)
+				if not result.is_empty():
+					ui.carried.amount += int(result["amount"])
+				return
+
+	ui.carried.amount -= moved
+	ui._clear_if_empty(ui.carried)
 
 
-func _on_object_slot_pressed(index: int) -> void:
+func quick_transfer_player(index: int) -> void:
 	if not is_instance_valid(active_target):
 		return
 
-	if mode == "chest":
-		_take_from_chest(index)
-	elif index >= 5:
-		_take_from_fire(index - 5)
-
-
-func _put_player_slot(index: int) -> void:
-	if inventory == null or not is_instance_valid(active_target):
+	if not ui.carried.is_empty():
 		return
 
 	var stack: ItemStack = inventory.get_slot(index)
@@ -465,182 +626,72 @@ func _put_player_slot(index: int) -> void:
 	if stack == null or stack.is_empty():
 		return
 
-	var moved: int = 0
+	var moved := 0
 
 	if mode == "chest":
-		var chest: ChestContainer = active_target as ChestContainer
-
-		if chest == null:
-			return
-
+		var chest := active_target as ChestContainer
 		moved = chest.store_items(stack.item_id, stack.amount)
-	elif stack.item_id == &"raw_meat":
-		moved = int(active_target.call("add_raw_meat", stack.amount))
-	elif mode != "campfire" and (stack.item_id == &"plank_scraps" or stack.item_id == &"coal"):
-		moved = int(active_target.call(
-			"add_fuel", stack.item_id, stack.amount
-		))
+	else:
+		var fire := active_target as Campfire
+
+		if stack.item_id == &"raw_meat":
+			moved = fire.add_raw_meat(stack.amount)
+
+		elif stack.item_id == &"plank_scraps" or stack.item_id == &"coal":
+			moved = fire.add_fuel(stack.item_id, stack.amount)
 
 	if moved > 0:
 		inventory.remove_from_slot(index, moved)
 
+	ui._refresh_all()
 	_refresh_ui()
 
 
-func _take_from_chest(index: int) -> void:
-	var chest: ChestContainer = active_target as ChestContainer
+func _quick_from_object(index: int, kind: String) -> void:
+	var item_id: StringName = &""
+	var amount := 0
 
-	if chest == null or inventory == null:
-		return
-
-	if index < 0 or index >= chest.storage_size:
-		return
-
-	var item_id: StringName = chest.storage_ids[index]
-	var amount: int = chest.storage_amounts[index]
-
-	if item_id == &"" or amount <= 0:
-		return
-
-	var available: int = inventory.get_addable_amount(item_id, amount)
-
-	if available <= 0:
-		return
-
-	var data: Dictionary = chest.take_items(index, available)
-
-	if data.is_empty():
-		return
-
-	var taken: int = int(data.get("amount", 0))
-	var added: int = inventory.add_item(item_id, taken)
-
-	if added < taken:
-		chest.store_items(item_id, taken - added)
-
-	_refresh_ui()
-
-
-func _take_from_fire(index: int) -> void:
-	if inventory == null or not is_instance_valid(active_target):
-		return
-
-	var output_ids: Array = active_target.get("output_ids")
-
-	if index < 0 or index >= output_ids.size():
-		return
-
-	var item_id: StringName = StringName(output_ids[index])
-
-	if item_id == &"" or not inventory.can_add_item(item_id, 1):
-		return
-
-	var data: Dictionary = active_target.call("collect_output", index)
-
-	if data.is_empty():
-		return
-
-	var collected_id: StringName = StringName(data.get("item_id", ""))
-	var amount: int = int(data.get("amount", 0))
-	var added: int = inventory.add_item(collected_id, amount)
-
-	if added < amount:
-		output_ids[index] = collected_id
-
-	_refresh_ui()
-
-
-func _on_player_gui_input(event: InputEvent, index: int) -> void:
-	if not event is InputEventMouseButton:
-		return
-	var mouse: InputEventMouseButton = event as InputEventMouseButton
-	if not mouse.pressed or mouse.button_index not in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
-		return
-	player_buttons[index].accept_event()
-	if mode != "campfire":
-		if mouse.button_index == MOUSE_BUTTON_LEFT:
-			_put_player_slot(index)
-		return
-	if inventory == null:
-		return
-	var target: ItemStack = inventory.get_slot(index)
-	if target == null:
-		return
-	if carried.is_empty():
-		if target.is_empty():
-			return
-		# Эта правка касается топлива: прежняя подача мяса сохраняется.
-		if target.item_id == &"raw_meat" and mouse.button_index == MOUSE_BUTTON_LEFT:
-			_put_player_slot(index)
-			return
-		var requested: int = target.amount if mouse.button_index == MOUSE_BUTTON_LEFT else ceili(target.amount / 2.0)
-		carried = inventory.take_from_slot(index, requested)
-	elif target.is_empty() or target.item_id == carried.item_id:
-		var item: ItemData = ItemRegistry.get_item(carried.item_id)
-		var limit: int = item.max_stack if item != null else 64
-		var requested: int = carried.amount if mouse.button_index == MOUSE_BUTTON_LEFT else 1
-		var moved: int = mini(requested, maxi(limit - target.amount, 0))
-		if item != null and item.unit_weight_kg > 0.0:
-			moved = mini(moved, maxi(floori((inventory.get_free_weight_kg() + 0.000001) / item.unit_weight_kg), 0))
-		if moved > 0:
-			target.item_id = carried.item_id
-			target.amount += moved
-			carried.amount -= moved
-			_clear_carried_if_empty()
-			inventory.notify_changed()
-	_refresh_ui()
-	_refresh_carried_preview()
-
-
-func _on_fuel_gui_input(event: InputEvent) -> void:
-	if mode != "campfire" or not is_instance_valid(active_target):
-		return
-	if not event is InputEventMouseButton:
-		return
-	var mouse: InputEventMouseButton = event as InputEventMouseButton
-	if not mouse.pressed or mouse.button_index not in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
-		return
-	fuel_button.accept_event()
-	if carried.is_empty():
-		var available: int = int(active_target.get("fuel_amount"))
-		var requested: int = available if mouse.button_index == MOUSE_BUTTON_LEFT else ceili(available / 2.0)
-		if requested > 0 and active_target.has_method("take_fuel"):
-			var result: Dictionary = active_target.call("take_fuel", requested)
-			carried.item_id = StringName(result.get("item_id", ""))
-			carried.amount = int(result.get("amount", 0))
+	if kind == "chest":
+		var chest := active_target as ChestContainer
+		item_id = chest.storage_ids[index]
+		amount = chest.storage_amounts[index]
 	else:
-		var requested: int = carried.amount if mouse.button_index == MOUSE_BUTTON_LEFT else 1
-		var accepted: int = int(active_target.call("add_fuel", carried.item_id, requested))
-		carried.amount -= accepted
-		_clear_carried_if_empty()
-	_refresh_ui()
-	_refresh_carried_preview()
+		var fire := active_target as Campfire
 
+		match kind:
+			"raw":
+				item_id = fire.input_ids[index]
+				amount = 1 if item_id != &"" else 0
 
-func _clear_carried_if_empty() -> void:
-	if carried.amount <= 0:
-		carried.clear()
+			"output":
+				item_id = fire.output_ids[index]
+				amount = 1 if item_id != &"" else 0
 
+			"fuel":
+				item_id = fire.fuel_ids[index]
+				amount = fire.fuel_amounts[index]
 
-func _return_carried() -> bool:
-	if carried.is_empty():
-		return true
-	if inventory == null:
-		return false
-	carried.amount -= inventory.add_item(carried.item_id, carried.amount)
-	_clear_carried_if_empty()
-	_refresh_carried_preview()
-	return carried.is_empty()
-
-
-func _refresh_carried_preview() -> void:
-	if carried_preview == null:
+	if amount <= 0:
 		return
-	carried_preview.visible = overlay != null and overlay.visible and not carried.is_empty()
-	if not carried_preview.visible:
+
+	# Сначала убеждаемся, что инвентарь принимает ресурс.
+	var accepted: int = inventory.add_item(item_id, amount)
+
+	if accepted <= 0:
 		return
-	carried_preview.position = get_viewport().get_mouse_position() + Vector2(18, 18)
-	var item: ItemData = ItemRegistry.get_item(carried.item_id)
-	carried_icon.texture = item.icon if item != null else null
-	var item_name: String = item.display_name if item != null else str(carried.item_id)
-	carried_label.text = "%s × %d" % [item_name, carried.amount]
+
+	if kind == "chest":
+		var chest := active_target as ChestContainer
+		chest.take_items(index, accepted)
+	else:
+		var fire := active_target as Campfire
+
+		match kind:
+			"raw":
+				fire.take_raw_meat(index)
+
+			"output":
+				fire.collect_output(index)
+
+			"fuel":
+				fire.take_fuel(index, accepted)
