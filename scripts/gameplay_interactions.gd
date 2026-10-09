@@ -1,43 +1,33 @@
 class_name GameplayInteractions
 extends Node
 
-@export_group("Взаимодействие")
-
-## Дальность взаимодействия в пикселях. Один блок — 32.
-@export_range(16.0, 200.0, 1.0) var interaction_distance: float = 52.0
-
-## Насколько близко к объекту нужно навести мышь, чтобы выбрать именно его.
-@export_range(8.0, 64.0, 1.0) var mouse_pick_radius: float = 26.0
-
+const INTERACTION_DISTANCE: float = 110.0
 const UI_REFRESH_INTERVAL: float = 0.15
 
 var player: Node2D
 var inventory: InventoryData
 var active_target: Node2D
 
-var source_inventory_ui: Node
-var shared_slot_scene: PackedScene
-var source_window: Control
-
 var mode: String = ""
 var previous_pause: bool = false
 var refresh_elapsed: float = 0.0
 
 var overlay: ColorRect
-var window_panel: PanelContainer
 var title_label: Label
 var timer_label: Label
 var object_grid: GridContainer
 var player_grid: GridContainer
-var player_hotbar_grid: GridContainer
-var hotbar_title: Label
-var fuel_row: HBoxContainer
-var fuel_view: InventorySlotUI
+var fuel_button: Button
 var hint_label: Label
 
-var object_views: Array[InventorySlotUI] = []
-var player_views: Array[InventorySlotUI] = []
-var hotbar_views: Array[InventorySlotUI] = []
+var object_buttons: Array[Button] = []
+var player_buttons: Array[Button] = []
+
+# Независимый стак окна объекта; InventoryUI не изменяется.
+var carried: ItemStack = ItemStack.new()
+var carried_preview: HBoxContainer
+var carried_icon: TextureRect
+var carried_label: Label
 
 
 func _ready() -> void:
@@ -46,12 +36,7 @@ func _ready() -> void:
 
 
 func _late_ready() -> void:
-	# Даём другим интерфейсам завершить начальную настройку.
-	await get_tree().process_frame
-
-	player = get_tree().get_first_node_in_group(
-		"player"
-	) as Node2D
+	player = get_tree().get_first_node_in_group("player") as Node2D
 
 	if player == null and get_tree().current_scene != null:
 		player = get_tree().current_scene.find_child(
@@ -61,59 +46,11 @@ func _late_ready() -> void:
 	if player != null:
 		inventory = player.get("inventory") as InventoryData
 
-	source_inventory_ui = get_tree().get_first_node_in_group(
-		"inventory_ui"
-	)
-
-	if source_inventory_ui == null:
-		push_error(
-			"GameplayInteractions: не найден интерфейс "
-			+ "в группе inventory_ui."
-		)
-		return
-
-	shared_slot_scene = source_inventory_ui.get(
-		"slot_scene"
-	) as PackedScene
-
-	if shared_slot_scene == null:
-		push_error(
-			"GameplayInteractions: у InventoryUI "
-			+ "не назначена Slot Scene."
-		)
-		return
-
-	# Проверяем, что используем именно ячейку игрока.
-	var probe: Node = shared_slot_scene.instantiate()
-	var valid_slot: bool = probe is InventorySlotUI
-	probe.free()
-
-	if not valid_slot:
-		push_error(
-			"GameplayInteractions: корень Slot Scene "
-			+ "должен использовать InventorySlotUI."
-		)
-		return
-
-	source_window = source_inventory_ui.get_node_or_null(
-		"Overlay/Center/InventoryWindow"
-	) as Control
-
-	if source_window == null:
-		push_warning(
-			"GameplayInteractions: окно InventoryWindow "
-			+ "не найдено. Ячейки будут общими, "
-			+ "но стиль панели нужно будет уточнить."
-		)
-
 	_build_ui()
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if overlay == null:
-		return
-
-	if event is InputEventKey and event.echo:
 		return
 
 	if overlay.visible and event.is_action_pressed("ui_cancel"):
@@ -125,6 +62,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	if event.is_action_pressed("interact"):
+		if event is InputEventKey and event.echo:
+			return
+
 		if overlay.visible:
 			close_window()
 		else:
@@ -134,6 +74,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
+	_refresh_carried_preview()
 	if overlay == null:
 		return
 
@@ -157,10 +98,7 @@ func _process(delta: float) -> void:
 	if get_tree().paused or _inventory_is_open():
 		return
 
-	if not is_instance_valid(player):
-		return
-
-	if bool(player.get("is_dead")):
+	if player == null or bool(player.get("is_dead")):
 		return
 
 	var nearest: Node2D = _nearest_interactable()
@@ -170,117 +108,48 @@ func _process(delta: float) -> void:
 
 	hint_label.visible = true
 	hint_label.text = (
-		"E — открыть сундук"
+        "E — открыть сундук"
 		if nearest.is_in_group("storage_chest")
 		else "E — открыть костёр"
 	)
 
 
 func _inventory_is_open() -> bool:
-	if not is_instance_valid(source_inventory_ui):
-		return false
+	var ui: Node = get_tree().get_first_node_in_group("inventory_ui")
 
-	if source_inventory_ui.has_method("is_inventory_open"):
-		return bool(
-			source_inventory_ui.call("is_inventory_open")
-		)
+	if ui != null and ui.has_method("is_inventory_open"):
+		return bool(ui.call("is_inventory_open"))
 
-	# Поддержка InventoryUI без метода is_inventory_open().
-	var inventory_overlay: Control = (
-		source_inventory_ui.get_node_or_null(
-			"Overlay"
-		) as Control
-	)
-
-	return (
-		inventory_overlay != null
-		and inventory_overlay.visible
-	)
+	return false
 
 
 func _nearest_interactable() -> Node2D:
-	if not is_instance_valid(player):
+	if player == null:
 		return null
 
-	# Сначала собираем всех, до кого реально можно дотянуться.
-	var candidates: Array[Node2D] = []
+	var best: Node2D = null
+	var best_distance: float = INTERACTION_DISTANCE
 
-	for group_name in [
-		"storage_chest",
-		"campfire_interactable"
-	]:
+	for group_name in ["storage_chest", "campfire_interactable"]:
 		for node in get_tree().get_nodes_in_group(group_name):
 			var candidate: Node2D = node as Node2D
 
 			if candidate == null:
 				continue
 
-			var distance: float = (
-				player.global_position.distance_to(
-					candidate.global_position
-				)
-			)
-
-			if distance <= interaction_distance:
-				candidates.append(candidate)
-
-	if candidates.is_empty():
-		return null
-
-	# Если рядом несколько — выбираем тот, на который наведена мышь.
-	var mouse_position: Vector2 = _get_mouse_world_position()
-	var picked_by_mouse: Node2D = null
-	var best_mouse_distance: float = mouse_pick_radius
-
-	for candidate: Node2D in candidates:
-		var mouse_distance: float = (
-			candidate.global_position.distance_to(
-				mouse_position
-			)
-		)
-
-		if mouse_distance < best_mouse_distance:
-			best_mouse_distance = mouse_distance
-			picked_by_mouse = candidate
-
-	if picked_by_mouse != null:
-		return picked_by_mouse
-
-	# Мышь ни на кого не наведена — берём ближайший к игроку.
-	var best: Node2D = candidates[0]
-	var best_distance: float = INF
-
-	for candidate: Node2D in candidates:
-		var distance: float = (
-			player.global_position.distance_to(
+			var distance: float = player.global_position.distance_to(
 				candidate.global_position
 			)
-		)
 
-		if distance < best_distance:
-			best_distance = distance
-			best = candidate
+			if distance < best_distance:
+				best_distance = distance
+				best = candidate
 
 	return best
 
 
-func _get_mouse_world_position() -> Vector2:
-	var viewport: Viewport = get_viewport()
-
-	if viewport == null:
-		return Vector2.ZERO
-
-	return (
-		viewport.get_canvas_transform().affine_inverse()
-		* viewport.get_mouse_position()
-	)
-
-
 func _try_interact() -> void:
-	if not is_instance_valid(player):
-		return
-
-	if bool(player.get("is_dead")):
+	if player == null or bool(player.get("is_dead")):
 		return
 
 	if get_tree().paused or _inventory_is_open():
@@ -290,9 +159,7 @@ func _try_interact() -> void:
 		inventory = player.get("inventory") as InventoryData
 
 	if inventory == null:
-		push_warning(
-			"GameplayInteractions: инвентарь игрока не найден."
-		)
+		push_warning("GameplayInteractions: инвентарь игрока не найден")
 		return
 
 	var target: Node2D = _nearest_interactable()
@@ -302,16 +169,10 @@ func _try_interact() -> void:
 
 	active_target = target
 	mode = (
-		"chest"
+        "chest"
 		if active_target.is_in_group("storage_chest")
 		else "campfire"
 	)
-
-	# Повторно берём стиль панели при открытии.
-	if is_instance_valid(source_window):
-		_copy_appearance(source_window, window_panel)
-
-	_fit_window()
 
 	previous_pause = get_tree().paused
 	get_tree().paused = true
@@ -327,6 +188,10 @@ func close_window() -> void:
 	if overlay == null or not overlay.visible:
 		return
 
+	if not _return_carried():
+		push_warning("Нет места для стака в руке. Сначала положите его в ячейку.")
+		return
+
 	overlay.visible = false
 	active_target = null
 	mode = ""
@@ -334,155 +199,34 @@ func close_window() -> void:
 	get_tree().paused = previous_pause
 
 
-func _find_effective_theme(control: Control) -> Theme:
-	var current: Node = control
-
-	while current != null:
-		if current is Control:
-			var current_control: Control = current as Control
-
-			if current_control.theme != null:
-				return current_control.theme
-
-		current = current.get_parent()
-
-	return null
-
-
-func _copy_appearance(
-		source: Control,
-		target: Control
-) -> void:
-	# Общая тема, в том числе унаследованная от родителей.
-	target.theme = _find_effective_theme(source)
-	target.theme_type_variation = source.theme_type_variation
-
-	# Локальные настройки оформления исходного узла.
-	for property_info in source.get_property_list():
-		var property_name: String = str(
-			property_info.get("name", "")
-		)
-
-		if property_name.begins_with("theme_override"):
-			target.set(
-				property_name,
-				source.get(property_name)
-			)
-
-	# Стиль панели может находиться в родительской Theme,
-	# а не среди локальных переопределений.
-	if source is PanelContainer or source is Panel:
-		if source.has_theme_stylebox("panel"):
-			target.add_theme_stylebox_override(
-				"panel",
-				source.get_theme_stylebox("panel")
-			)
-
-
-func _reference_player_slot() -> InventorySlotUI:
-	if not is_instance_valid(source_inventory_ui):
-		return null
-
-	var main_grid: GridContainer = (
-		source_inventory_ui.get_node_or_null(
-			"Overlay/Center/InventoryWindow/Margin/Main/"
-			+ "Content/PlayerColumn/MainInventoryGrid"
-		) as GridContainer
-	)
-
-	if main_grid == null:
-		return null
-
-	for child in main_grid.get_children():
-		if child is InventorySlotUI:
-			if not child.is_queued_for_deletion():
-				return child as InventorySlotUI
-
-	return null
-
-
-func _new_slot(
-		index: int,
-		for_player: bool
-) -> InventorySlotUI:
-	var view: InventorySlotUI = (
-		shared_slot_scene.instantiate() as InventorySlotUI
-	)
-
-	view.setup(index)
-
-	# Та же сцена сохраняет размеры, дочерние узлы,
-	# иконку, счётчик и рамку выделения.
-	# Дополнительно переносим оформление, унаследованное
-	# существующей ячейкой от интерфейса игрока.
-	var reference: InventorySlotUI = _reference_player_slot()
-
-	if reference != null:
-		_copy_appearance(reference, view)
-
-	if for_player:
-		view.slot_pressed.connect(_on_player_slot_pressed)
-	else:
-		view.slot_pressed.connect(_on_object_slot_pressed)
-
-	return view
-
-
 func _build_ui() -> void:
-	var layer: CanvasLayer = CanvasLayer.new()
+	var layer := CanvasLayer.new()
 	layer.layer = 80
 	add_child(layer)
 
 	overlay = ColorRect.new()
 	overlay.color = Color(0.0, 0.0, 0.0, 0.65)
-	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	layer.add_child(overlay)
-	overlay.set_anchors_and_offsets_preset(
-		Control.PRESET_FULL_RECT
-	)
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
-	if is_instance_valid(source_inventory_ui):
-		var original_overlay: ColorRect = (
-			source_inventory_ui.get_node_or_null(
-				"Overlay"
-			) as ColorRect
-		)
-
-		if original_overlay != null:
-			overlay.color = original_overlay.color
-
-	var center: CenterContainer = CenterContainer.new()
+	var center := CenterContainer.new()
 	overlay.add_child(center)
-	center.set_anchors_and_offsets_preset(
-		Control.PRESET_FULL_RECT
-	)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
-	window_panel = PanelContainer.new()
-	center.add_child(window_panel)
+	var window := PanelContainer.new()
+	window.custom_minimum_size = Vector2(720, 560)
+	center.add_child(window)
 
-	if is_instance_valid(source_window):
-		_copy_appearance(source_window, window_panel)
-
-	_fit_window()
-
-	var margin: MarginContainer = MarginContainer.new()
+	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 20)
 	margin.add_theme_constant_override("margin_right", 20)
 	margin.add_theme_constant_override("margin_top", 16)
 	margin.add_theme_constant_override("margin_bottom", 16)
-	window_panel.add_child(margin)
+	window.add_child(margin)
 
-	# Позволяет просматривать большой сундук,
-	# не растягивая окно за пределы экрана.
-	var scroll: ScrollContainer = ScrollContainer.new()
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	margin.add_child(scroll)
-
-	var box: VBoxContainer = VBoxContainer.new()
-	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	box.add_theme_constant_override("separation", 12)
-	scroll.add_child(box)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	margin.add_child(box)
 
 	title_label = Label.new()
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -495,53 +239,28 @@ func _build_ui() -> void:
 
 	object_grid = GridContainer.new()
 	object_grid.columns = 4
-	object_grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	box.add_child(object_grid)
 
-	fuel_row = HBoxContainer.new()
-	fuel_row.add_theme_constant_override("separation", 12)
-	box.add_child(fuel_row)
+	fuel_button = Button.new()
+	fuel_button.custom_minimum_size = Vector2(180, 44)
+	fuel_button.gui_input.connect(_on_fuel_gui_input)
+	fuel_button.focus_mode = Control.FOCUS_NONE
+	box.add_child(fuel_button)
 
-	var fuel_title: Label = Label.new()
-	fuel_title.text = "ТОПЛИВО"
-	fuel_row.add_child(fuel_title)
-
-	fuel_view = _new_slot(-1, false)
-	fuel_row.add_child(fuel_view)
-
-	var separator: HSeparator = HSeparator.new()
-	box.add_child(separator)
-
-	var player_title: Label = Label.new()
+	var player_title := Label.new()
 	player_title.text = "ИНВЕНТАРЬ ИГРОКА"
 	box.add_child(player_title)
 
 	player_grid = GridContainer.new()
 	player_grid.columns = 9
-	player_grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	box.add_child(player_grid)
 
-	hotbar_title = Label.new()
-	hotbar_title.text = "ПАНЕЛЬ БЫСТРОГО ДОСТУПА"
-	box.add_child(hotbar_title)
-
-	player_hotbar_grid = GridContainer.new()
-	player_hotbar_grid.columns = 9
-	player_hotbar_grid.size_flags_horizontal = (
-		Control.SIZE_SHRINK_CENTER
-	)
-	box.add_child(player_hotbar_grid)
-
-	var instructions: Label = Label.new()
-	instructions.text = (
-		"По ячейке игрока: ЛКМ — положить всё, ПКМ — одну штуку.\n"
-		+ "По ячейке объекта: ЛКМ — забрать всё, ПКМ — одну штуку."
-	)
+	var instructions := Label.new()
+	instructions.text = "Костёр: ЛКМ — взять/положить стак. ПКМ на топливо — положить 1.\nСундук: клик снизу — положить, клик сверху — забрать."
 	box.add_child(instructions)
 
-	var close_button: Button = Button.new()
+	var close_button := Button.new()
 	close_button.text = "Закрыть (E / Esc)"
-	close_button.custom_minimum_size.y = 40
 	close_button.pressed.connect(close_window)
 	box.add_child(close_button)
 
@@ -552,29 +271,30 @@ func _build_ui() -> void:
 	hint_label.visible = false
 	layer.add_child(hint_label)
 
+	var preview_layer := CanvasLayer.new()
+	preview_layer.layer = 81
+	add_child(preview_layer)
+	carried_preview = HBoxContainer.new()
+	carried_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	preview_layer.add_child(carried_preview)
+	carried_icon = TextureRect.new()
+	carried_icon.custom_minimum_size = Vector2(32, 32)
+	carried_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	carried_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	carried_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	carried_preview.add_child(carried_icon)
+	carried_label = Label.new()
+	carried_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	carried_preview.add_child(carried_label)
+	carried_preview.visible = false
 	overlay.visible = false
 
 
-func _fit_window() -> void:
-	if window_panel == null:
-		return
-
-	var viewport_size: Vector2 = (
-		get_viewport().get_visible_rect().size
-	)
-
-	window_panel.custom_minimum_size = Vector2(
-		minf(900.0, maxf(200.0, viewport_size.x - 32.0)),
-		minf(700.0, maxf(200.0, viewport_size.y - 32.0))
-	)
-
-
-func _ensure_slots(
+func _ensure_buttons(
 		grid: GridContainer,
-		views: Array[InventorySlotUI],
+		views: Array[Button],
 		count: int,
-		for_player: bool,
-		start_index: int = 0
+		for_player: bool
 ) -> void:
 	if views.size() == count:
 		return
@@ -586,40 +306,47 @@ func _ensure_slots(
 	views.clear()
 
 	for i in range(count):
-		var view: InventorySlotUI = _new_slot(
-			start_index + i,
-			for_player
-		)
+		var button := Button.new()
+		button.custom_minimum_size = Vector2(64, 52)
+		button.expand_icon = true
+		button.add_theme_constant_override("icon_max_width", 28)
 
-		grid.add_child(view)
-		views.append(view)
+		if for_player:
+			button.gui_input.connect(_on_player_gui_input.bind(i))
+			button.focus_mode = Control.FOCUS_NONE
+		else:
+			button.pressed.connect(_on_object_slot_pressed.bind(i))
+
+		grid.add_child(button)
+		views.append(button)
 
 
-func _set_slot(
-		view: InventorySlotUI,
+func _set_button(
+		button: Button,
 		item_id: StringName,
 		amount: int,
 		clickable: bool
 ) -> void:
-	var stack: ItemStack = ItemStack.new()
-	stack.set_item(item_id, amount)
+	button.icon = null
+	button.tooltip_text = ""
+	button.disabled = not clickable
 
-	# Используется тот же метод отображения,
-	# что и в основном инвентаре.
-	view.display_stack(stack)
-	view.set_selected(false)
+	if item_id == &"" or amount <= 0:
+		button.text = "—"
+		return
 
-	var can_click: bool = (
-		clickable
-		and not stack.is_empty()
+	var item: ItemData = ItemRegistry.get_item(item_id)
+	var item_name: String = (
+		item.display_name if item != null else str(item_id)
 	)
 
-	view.set_meta("interaction_clickable", can_click)
-	view.mouse_default_cursor_shape = (
-		Control.CURSOR_POINTING_HAND
-		if can_click
-		else Control.CURSOR_ARROW
-	)
+	button.tooltip_text = "%s × %d" % [item_name, amount]
+
+	if item != null and item.icon != null:
+		button.icon = item.icon
+		button.text = str(amount)
+	else:
+		button.text = "%s\n×%d" % [item_name.substr(0, 10), amount]
 
 
 func _refresh_ui() -> void:
@@ -635,20 +362,17 @@ func _refresh_ui() -> void:
 			return
 
 		title_label.text = "СУНДУК — %d ЯЧЕЕК" % chest.storage_size
-		timer_label.text = "Нажмите предмет, чтобы забрать его"
-		fuel_row.visible = false
+		timer_label.text = "Нажмите заполненную ячейку, чтобы забрать"
+		fuel_button.visible = false
 		object_grid.columns = 4
 
-		_ensure_slots(
-			object_grid,
-			object_views,
-			chest.storage_size,
-			false
+		_ensure_buttons(
+			object_grid, object_buttons, chest.storage_size, false
 		)
 
 		for i in range(chest.storage_size):
-			_set_slot(
-				object_views[i],
+			_set_button(
+				object_buttons[i],
 				chest.storage_ids[i],
 				chest.storage_amounts[i],
 				true
@@ -656,194 +380,74 @@ func _refresh_ui() -> void:
 	else:
 		_refresh_fire()
 
-	_refresh_player_inventory()
-
-
-func _refresh_player_inventory() -> void:
 	if inventory == null:
 		return
 
-	var total_slots: int = inventory.slots.size()
-
-	# Сохраняем устройство текущего интерфейса:
-	# первые 27 ячеек — основной инвентарь,
-	# следующие 9 — панель быстрого доступа.
-	var main_count: int = mini(27, total_slots)
-	var hotbar_count: int = mini(
-		9,
-		maxi(total_slots - main_count, 0)
+	_ensure_buttons(
+		player_grid, player_buttons, inventory.slots.size(), true
 	)
 
-	_ensure_slots(
-		player_grid,
-		player_views,
-		main_count,
-		true
-	)
+	for i in range(inventory.slots.size()):
+		var stack: ItemStack = inventory.get_slot(i)
 
-	_ensure_slots(
-		player_hotbar_grid,
-		hotbar_views,
-		hotbar_count,
-		true,
-		main_count
-	)
-
-	hotbar_title.visible = hotbar_count > 0
-	player_hotbar_grid.visible = hotbar_count > 0
-
-	for i in range(main_count):
-		_display_player_slot(player_views[i], i)
-
-	var selected_hotbar: int = -1
-
-	if is_instance_valid(player):
-		selected_hotbar = int(
-			player.get_meta("selected_hotbar_index", -1)
-		)
-
-	for i in range(hotbar_count):
-		_display_player_slot(
-			hotbar_views[i],
-			main_count + i
-		)
-		hotbar_views[i].set_selected(
-			i == selected_hotbar
-		)
-
-
-func _display_player_slot(
-		view: InventorySlotUI,
-		index: int
-) -> void:
-	var stack: ItemStack = inventory.get_slot(index)
-
-	if stack == null or stack.is_empty():
-		_set_slot(view, &"", 0, false)
-	else:
-		_set_slot(
-			view,
-			stack.item_id,
-			stack.amount,
-			true
-		)
+		if stack == null or stack.is_empty():
+			_set_button(player_buttons[i], &"", 0, mode == "campfire")
+		else:
+			_set_button(
+				player_buttons[i], stack.item_id, stack.amount, true
+			)
 
 
 func _refresh_fire() -> void:
 	title_label.text = "КОСТЁР"
-	timer_label.text = (
-		"До затухания: %s\n"
-		+ "Верхний ряд — готовится. Нижний — результат."
-	) % str(active_target.call("get_timer_text"))
+	timer_label.text = "До затухания: %s" % str(
+		active_target.call("get_timer_text")
+	)
 
-	fuel_row.visible = true
+	fuel_button.visible = true
 	object_grid.columns = 5
 
-	var fuel_id: StringName = StringName(
-		active_target.get("fuel_id")
-	)
-	var fuel_amount: int = int(
-		active_target.get("fuel_amount")
-	)
+	var fuel_id: StringName = StringName(active_target.get("fuel_id"))
+	var fuel_amount: int = int(active_target.get("fuel_amount"))
 
-	_set_slot(fuel_view, fuel_id, fuel_amount, true)
+	_set_button(fuel_button, fuel_id, fuel_amount, true)
+	fuel_button.text = "Топливо: " + fuel_button.text
 
 	var input_ids: Array = active_target.get("input_ids")
 	var output_ids: Array = active_target.get("output_ids")
 	var progress: Array = active_target.get("cook_progress")
-	var cook_seconds: float = Campfire.COOK_SECONDS
+	var cook_seconds: float = float(active_target.get("COOK_SECONDS"))
 
-	_ensure_slots(
-		object_grid,
-		object_views,
-		10,
-		false
-	)
+	_ensure_buttons(object_grid, object_buttons, 10, false)
 
 	for i in range(5):
-		var input_id: StringName = &""
+		var input_id: StringName = StringName(input_ids[i])
 
-		if i < input_ids.size():
-			input_id = StringName(input_ids[i])
-
-		_set_slot(
-			object_views[i],
+		_set_button(
+			object_buttons[i],
 			input_id,
 			1 if input_id != &"" else 0,
 			false
 		)
 
 		if input_id != &"":
-			var current_progress: float = 0.0
-
-			if i < progress.size():
-				current_progress = float(progress[i])
-
 			var remaining: float = maxf(
-				0.0,
-				cook_seconds - current_progress
+				0.0, cook_seconds - float(progress[i])
 			)
+			object_buttons[i].text += "\n%.1f с" % remaining
 
-			object_views[i].tooltip_text += (
-				"\nДо готовности: %.1f с" % remaining
-			)
+		var output_id: StringName = StringName(output_ids[i])
 
-		var output_id: StringName = &""
-
-		if i < output_ids.size():
-			output_id = StringName(output_ids[i])
-
-		_set_slot(
-			object_views[5 + i],
+		_set_button(
+			object_buttons[5 + i],
 			output_id,
 			1 if output_id != &"" else 0,
 			true
 		)
 
 
-func _on_player_slot_pressed(
-		index: int,
-		mouse_button: MouseButton
-) -> void:
-	# Левая кнопка кладёт весь стак, правая — по одной штуке.
-	if mouse_button == MOUSE_BUTTON_LEFT:
-		_put_player_slot(index, 0)
-	elif mouse_button == MOUSE_BUTTON_RIGHT:
-		_put_player_slot(index, 1)
-
-
-func _on_object_slot_pressed(
-		index: int,
-		mouse_button: MouseButton
-) -> void:
-	if (
-		mouse_button != MOUSE_BUTTON_LEFT
-		and mouse_button != MOUSE_BUTTON_RIGHT
-	):
-		return
-
+func _on_object_slot_pressed(index: int) -> void:
 	if not is_instance_valid(active_target):
-		return
-
-	# Ячейка топлива у костра имеет индекс -1.
-	if mode == "campfire" and index == -1:
-		_take_fuel_from_fire(
-			0 if mouse_button == MOUSE_BUTTON_LEFT else 1
-		)
-		return
-
-	if mouse_button != MOUSE_BUTTON_LEFT:
-		return
-
-	if index < 0 or index >= object_views.size():
-		return
-
-	if not bool(
-		object_views[index].get_meta(
-			"interaction_clickable",
-			false
-		)
-	):
 		return
 
 	if mode == "chest":
@@ -852,23 +456,13 @@ func _on_object_slot_pressed(
 		_take_from_fire(index - 5)
 
 
-## requested_amount: 0 — весь стак, иначе столько штук.
-func _put_player_slot(index: int, requested_amount: int) -> void:
+func _put_player_slot(index: int) -> void:
 	if inventory == null or not is_instance_valid(active_target):
 		return
 
 	var stack: ItemStack = inventory.get_slot(index)
 
 	if stack == null or stack.is_empty():
-		return
-
-	var amount: int = (
-		stack.amount
-		if requested_amount <= 0
-		else mini(requested_amount, stack.amount)
-	)
-
-	if amount <= 0:
 		return
 
 	var moved: int = 0
@@ -879,78 +473,16 @@ func _put_player_slot(index: int, requested_amount: int) -> void:
 		if chest == null:
 			return
 
-		moved = chest.store_items(
-			stack.item_id,
-			amount
-		)
+		moved = chest.store_items(stack.item_id, stack.amount)
 	elif stack.item_id == &"raw_meat":
-		moved = int(
-			active_target.call(
-				"add_raw_meat",
-				amount
-			)
-		)
-	elif (
-		stack.item_id == &"plank_scraps"
-		or stack.item_id == &"coal"
-	):
-		moved = int(
-			active_target.call(
-				"add_fuel",
-				stack.item_id,
-				amount
-			)
-		)
+		moved = int(active_target.call("add_raw_meat", stack.amount))
+	elif mode != "campfire" and (stack.item_id == &"plank_scraps" or stack.item_id == &"coal"):
+		moved = int(active_target.call(
+			"add_fuel", stack.item_id, stack.amount
+		))
 
 	if moved > 0:
 		inventory.remove_from_slot(index, moved)
-
-	_refresh_ui()
-
-
-## Забирает топливо из костра обратно в инвентарь.
-## requested_amount: 0 — забрать всё, иначе столько штук.
-func _take_fuel_from_fire(requested_amount: int) -> void:
-	if inventory == null or not is_instance_valid(active_target):
-		return
-
-	var fuel_id: StringName = StringName(
-		active_target.get("fuel_id")
-	)
-	var fuel_amount: int = int(
-		active_target.get("fuel_amount")
-	)
-
-	if fuel_id == &"" or fuel_amount <= 0:
-		return
-
-	var wanted: int = (
-		fuel_amount
-		if requested_amount <= 0
-		else mini(requested_amount, fuel_amount)
-	)
-
-	var available: int = inventory.get_addable_amount(
-		fuel_id,
-		wanted
-	)
-
-	if available <= 0:
-		return
-
-	var data: Dictionary = active_target.call(
-		"take_fuel",
-		available
-	)
-
-	if data.is_empty():
-		return
-
-	var taken: int = int(data.get("amount", 0))
-	var added: int = inventory.add_item(fuel_id, taken)
-
-	if added < taken:
-		active_target.call("add_fuel", fuel_id, taken - added)
 
 	_refresh_ui()
 
@@ -970,18 +502,12 @@ func _take_from_chest(index: int) -> void:
 	if item_id == &"" or amount <= 0:
 		return
 
-	var available: int = inventory.get_addable_amount(
-		item_id,
-		amount
-	)
+	var available: int = inventory.get_addable_amount(item_id, amount)
 
 	if available <= 0:
 		return
 
-	var data: Dictionary = chest.take_items(
-		index,
-		available
-	)
+	var data: Dictionary = chest.take_items(index, available)
 
 	if data.is_empty():
 		return
@@ -1009,24 +535,112 @@ func _take_from_fire(index: int) -> void:
 	if item_id == &"" or not inventory.can_add_item(item_id, 1):
 		return
 
-	var data: Dictionary = active_target.call(
-		"collect_output",
-		index
-	)
+	var data: Dictionary = active_target.call("collect_output", index)
 
 	if data.is_empty():
 		return
 
-	var collected_id: StringName = StringName(
-		data.get("item_id", "")
-	)
+	var collected_id: StringName = StringName(data.get("item_id", ""))
 	var amount: int = int(data.get("amount", 0))
-	var added: int = inventory.add_item(
-		collected_id,
-		amount
-	)
+	var added: int = inventory.add_item(collected_id, amount)
 
 	if added < amount:
 		output_ids[index] = collected_id
 
 	_refresh_ui()
+
+
+func _on_player_gui_input(event: InputEvent, index: int) -> void:
+	if not event is InputEventMouseButton:
+		return
+	var mouse: InputEventMouseButton = event as InputEventMouseButton
+	if not mouse.pressed or mouse.button_index not in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
+		return
+	player_buttons[index].accept_event()
+	if mode != "campfire":
+		if mouse.button_index == MOUSE_BUTTON_LEFT:
+			_put_player_slot(index)
+		return
+	if inventory == null:
+		return
+	var target: ItemStack = inventory.get_slot(index)
+	if target == null:
+		return
+	if carried.is_empty():
+		if target.is_empty():
+			return
+		# Эта правка касается топлива: прежняя подача мяса сохраняется.
+		if target.item_id == &"raw_meat" and mouse.button_index == MOUSE_BUTTON_LEFT:
+			_put_player_slot(index)
+			return
+		var requested: int = target.amount if mouse.button_index == MOUSE_BUTTON_LEFT else ceili(target.amount / 2.0)
+		carried = inventory.take_from_slot(index, requested)
+	elif target.is_empty() or target.item_id == carried.item_id:
+		var item: ItemData = ItemRegistry.get_item(carried.item_id)
+		var limit: int = item.max_stack if item != null else 64
+		var requested: int = carried.amount if mouse.button_index == MOUSE_BUTTON_LEFT else 1
+		var moved: int = mini(requested, maxi(limit - target.amount, 0))
+		if item != null and item.unit_weight_kg > 0.0:
+			moved = mini(moved, maxi(floori((inventory.get_free_weight_kg() + 0.000001) / item.unit_weight_kg), 0))
+		if moved > 0:
+			target.item_id = carried.item_id
+			target.amount += moved
+			carried.amount -= moved
+			_clear_carried_if_empty()
+			inventory.notify_changed()
+	_refresh_ui()
+	_refresh_carried_preview()
+
+
+func _on_fuel_gui_input(event: InputEvent) -> void:
+	if mode != "campfire" or not is_instance_valid(active_target):
+		return
+	if not event is InputEventMouseButton:
+		return
+	var mouse: InputEventMouseButton = event as InputEventMouseButton
+	if not mouse.pressed or mouse.button_index not in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
+		return
+	fuel_button.accept_event()
+	if carried.is_empty():
+		var available: int = int(active_target.get("fuel_amount"))
+		var requested: int = available if mouse.button_index == MOUSE_BUTTON_LEFT else ceili(available / 2.0)
+		if requested > 0 and active_target.has_method("take_fuel"):
+			var result: Dictionary = active_target.call("take_fuel", requested)
+			carried.item_id = StringName(result.get("item_id", ""))
+			carried.amount = int(result.get("amount", 0))
+	else:
+		var requested: int = carried.amount if mouse.button_index == MOUSE_BUTTON_LEFT else 1
+		var accepted: int = int(active_target.call("add_fuel", carried.item_id, requested))
+		carried.amount -= accepted
+		_clear_carried_if_empty()
+	_refresh_ui()
+	_refresh_carried_preview()
+
+
+func _clear_carried_if_empty() -> void:
+	if carried.amount <= 0:
+		carried.clear()
+
+
+func _return_carried() -> bool:
+	if carried.is_empty():
+		return true
+	if inventory == null:
+		return false
+	carried.amount -= inventory.add_item(carried.item_id, carried.amount)
+	_clear_carried_if_empty()
+	_refresh_carried_preview()
+	return carried.is_empty()
+
+
+func _refresh_carried_preview() -> void:
+	if carried_preview == null:
+		return
+	carried_preview.visible = overlay != null and overlay.visible and not carried.is_empty()
+	if not carried_preview.visible:
+		return
+	carried_preview.position = get_viewport().get_mouse_position() + Vector2(18, 18)
+	var item: ItemData = ItemRegistry.get_item(carried.item_id)
+	carried_icon.texture = item.icon if item != null else null
+	var item_name: String = item.display_name if item != null else str(carried.item_id)
+	carried_label.text = "%s × %d" % [item_name, carried.amount]

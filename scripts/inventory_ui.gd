@@ -530,5 +530,3 @@ func _return_loose_items() -> void:
 		if accepted < stack.amount:
 			_spawn_dropped(stack.item_id, stack.amount - accepted)
 	_refresh_all()
-
-

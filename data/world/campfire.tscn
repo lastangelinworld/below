@@ -1,13 +1,12 @@
 [gd_scene format=3 uid="uid://cbjmhd0xql2a0"]
 
 [ext_resource type="Script" uid="uid://na2klx80vmql" path="res://scripts/campfire.gd" id="1"]
-[ext_resource type="Texture2D" uid="uid://dxggesup3yi6" path="res://assets/campfire/1.png" id="2_03ppr"]
-[ext_resource type="Texture2D" uid="uid://ders43kveb4u4" path="res://assets/campfire/2.png" id="3_sd3lr"]
-[ext_resource type="Texture2D" uid="uid://cxud7tuelhxtv" path="res://assets/campfire/3.png" id="4_iolep"]
-[ext_resource type="Texture2D" uid="uid://cms6xxd47klb" path="res://assets/campfire/4.png" id="5_mfmd7"]
-[ext_resource type="Texture2D" uid="uid://tpa1ojr5gtdn" path="res://assets/campfire/6.png" id="6_xwl4g"]
-[ext_resource type="Texture2D" uid="uid://btaqx6gg11eys" path="res://assets/campfire/5.png" id="7_lenqg"]
-[ext_resource type="Texture2D" uid="uid://bpp4midsl2ul" path="res://assets/campfire/0.png" id="8_l7qc1"]
+[ext_resource type="Texture2D" uid="uid://cwhth8tst08ho" path="res://Texture/aim campfier/1_0000_5.png" id="2_x3vrr"]
+[ext_resource type="Texture2D" uid="uid://bqtn53ds8xj1t" path="res://Texture/aim campfier/1_0001_4.png" id="3_03ppr"]
+[ext_resource type="Texture2D" uid="uid://bbmgje3j1smy2" path="res://Texture/aim campfier/1_0002_3.png" id="4_sd3lr"]
+[ext_resource type="Texture2D" uid="uid://dntomkm8j75ac" path="res://Texture/aim campfier/1_0003_2.png" id="5_iolep"]
+[ext_resource type="Texture2D" uid="uid://3xhdj6lqnyti" path="res://Texture/aim campfier/1_0004_1.png" id="6_mfmd7"]
+[ext_resource type="Texture2D" uid="uid://bhgvhaii5bye4" path="res://Texture/aim campfier/1_0005_0.png" id="7_xwl4g"]
 
 [sub_resource type="CircleShape2D" id="area_shape"]
 radius = 24.0
@@ -16,26 +15,23 @@ radius = 24.0
 animations = [{
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("2_03ppr")
+"texture": ExtResource("2_x3vrr")
 }, {
 "duration": 1.0,
-"texture": ExtResource("3_sd3lr")
+"texture": ExtResource("3_03ppr")
 }, {
 "duration": 1.0,
-"texture": ExtResource("4_iolep")
+"texture": ExtResource("4_sd3lr")
 }, {
 "duration": 1.0,
-"texture": ExtResource("5_mfmd7")
+"texture": ExtResource("5_iolep")
 }, {
 "duration": 1.0,
-"texture": ExtResource("6_xwl4g")
-}, {
-"duration": 1.0,
-"texture": ExtResource("7_lenqg")
+"texture": ExtResource("6_mfmd7")
 }],
 "loop": 1,
 "name": &"burn",
-"speed": 6.0
+"speed": 3.0
 }]
 
 [node name="Campfire" type="Node2D" unique_id=1638280347]
@@ -46,6 +42,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="InteractionArea" unique_id=2073007915]
+visible = false
 position = Vector2(0, -5)
 shape = SubResource("area_shape")
 
@@ -60,8 +57,9 @@ scale = Vector2(0.5, 0.5)
 sprite_frames = SubResource("SpriteFrames_7a4le")
 animation = &"burn"
 autoplay = "burn"
+frame_progress = 0.2442312
 
 [node name="CampfireBase" type="Sprite2D" parent="." unique_id=1366750586]
 z_index = -1
 scale = Vector2(0.5, 0.5)
-texture = ExtResource("8_l7qc1")
+texture = ExtResource("7_xwl4g")
