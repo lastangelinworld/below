@@ -10,6 +10,8 @@ signal slot_hovered(slot_index: int, entered: bool)
 @onready var amount_label: Label = $AmountLabel
 @onready var selection: Panel = $Selection
 var slot_index := -1
+## Подпись пустой ячейки (например «Шлем») для слотов экипировки.
+var slot_hint: String = ""
 
 func _ready() -> void:
     mouse_entered.connect(func(): slot_hovered.emit(slot_index, true))
@@ -26,17 +28,18 @@ func display_stack(stack: ItemStack) -> void:
     var item: ItemData = ItemRegistry.get_item(stack.item_id)
     item_icon.texture = item.icon if item != null else null
     amount_label.text = str(stack.amount) if stack.amount > 1 else ""
+    var prefix: String = (slot_hint + "\n") if not slot_hint.is_empty() else ""
     if item == null:
-        tooltip_text = "Неизвестный предмет: %s × %d" % [stack.item_id, stack.amount]
+        tooltip_text = "%sНеизвестный предмет: %s × %d" % [prefix, stack.item_id, stack.amount]
     else:
-        tooltip_text = "%s\nКоличество: %d\nВес: %.2f кг" % [item.display_name, stack.amount, item.unit_weight_kg * stack.amount]
+        tooltip_text = "%s%s\nКоличество: %d\nВес: %.2f кг" % [prefix, item.display_name, stack.amount, item.unit_weight_kg * stack.amount]
 
 func clear_display() -> void:
     if not is_node_ready():
         return
     item_icon.texture = null
     amount_label.text = ""
-    tooltip_text = "Пустая ячейка"
+    tooltip_text = slot_hint if not slot_hint.is_empty() else "Пустая ячейка"
 
 func set_selected(value: bool) -> void:
     if is_instance_valid(selection):

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EquipmentComponent" format=3]
+
+[ext_resource type="Script" path="res://scripts/equipment_component.gd" id="1_ec"]
+
+[resource]
+script = ExtResource("1_ec")
+item_id = &"iron_chestplate"
+display_name = "Железный нагрудник"
+name_few = "железных нагрудника"
+name_many = "железных нагрудников"
+unit_weight_kg = 8.0
+max_stack = 1
+usable_in_crafting = true
+can_be_dropped = true
+slot = 2
+armor = 6
+attack_damage = 0
+attack_speed_multiplier = 1.0
+attack_stamina_cost_modifier = 0.5
+stamina_bonus = 0.0
+max_health_bonus = 15
+is_dual_hand = false

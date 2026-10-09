@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EquipmentComponent" format=3]
+
+[ext_resource type="Script" path="res://scripts/equipment_component.gd" id="1_ec"]
+
+[resource]
+script = ExtResource("1_ec")
+item_id = &"iron_pickaxe"
+display_name = "Железная кирка"
+name_few = "железные кирки"
+name_many = "железных кирок"
+unit_weight_kg = 3.0
+max_stack = 1
+usable_in_crafting = true
+can_be_dropped = true
+slot = 9
+armor = 0
+attack_damage = 3
+attack_speed_multiplier = 1.25
+attack_stamina_cost_modifier = -1.0
+stamina_bonus = 0.0
+max_health_bonus = 0
+is_dual_hand = false

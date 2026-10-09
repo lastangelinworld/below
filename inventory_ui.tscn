@@ -135,6 +135,20 @@ layout_mode = 2
 theme_override_constants/h_separation = 4
 columns = 9
 
+[node name="EquipmentColumn" type="VBoxContainer" parent="Overlay/Center/InventoryWindow/Margin/Main/Content"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="EquipmentLabel" type="Label" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/EquipmentColumn"]
+layout_mode = 2
+text = "ЭКИПИРОВКА"
+
+[node name="EquipmentGrid" type="GridContainer" parent="Overlay/Center/InventoryWindow/Margin/Main/Content/EquipmentColumn"]
+layout_mode = 2
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4
+columns = 2
+
 [node name="CraftColumn" type="VBoxContainer" parent="Overlay/Center/InventoryWindow/Margin/Main/Content" unique_id=1531646778]
 custom_minimum_size = Vector2(250, 0)
 layout_mode = 2

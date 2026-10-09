@@ -17,6 +17,7 @@ extends CanvasLayer
 @onready var inventory_window: Control = $Overlay/Center/InventoryWindow
 @onready var main_grid: GridContainer = $Overlay/Center/InventoryWindow/Margin/Main/Content/PlayerColumn/MainInventoryGrid
 @onready var inventory_hotbar_grid: GridContainer = $Overlay/Center/InventoryWindow/Margin/Main/Content/PlayerColumn/InventoryHotbarGrid
+@onready var equipment_grid: GridContainer = $Overlay/Center/InventoryWindow/Margin/Main/Content/EquipmentColumn/EquipmentGrid
 @onready var craft_grid: GridContainer = $Overlay/Center/InventoryWindow/Margin/Main/Content/CraftColumn/CraftRow/CraftGrid
 @onready var result_holder: Control = $Overlay/Center/InventoryWindow/Margin/Main/Content/CraftColumn/CraftRow/ResultHolder
 @onready var weight_bar: ProgressBar = $Overlay/Center/InventoryWindow/Margin/Main/WeightBar
@@ -31,19 +32,23 @@ var external_handler: Node
 
 var player: Node
 var inventory: InventoryData
+## Система экипировки игрока (Фаза 2). Может быть ещё не создана
+## в момент подключения UI — ищем лениво через _get_equipment().
+var equipment: EquipmentSystem
 var carried := ItemStack.new()
 var craft_slots: Array[ItemStack] = []
 var inventory_views: Array[InventorySlotUI] = []
 var hotbar_views: Array[InventorySlotUI] = []
 var inventory_hotbar_views: Array[InventorySlotUI] = []
-var food_views: Array[InventorySlotUI] = []
-var food_timer_labels: Array[Label] = []
-var food_row: HBoxContainer
 var craft_views: Array[InventorySlotUI] = []
 var result_view: InventorySlotUI
+## Ячейки интерфейса экипировки и их соответствие типам слотов.
+var equipment_views: Array[InventorySlotUI] = []
+var equipment_slot_types: Array[EquipmentSlot.Type] = []
 var selected_hotbar := 0
 var hovered_inventory_slot := -1
 var hovered_craft_slot := -1
+var hovered_equipment_slot := -1
 var _previous_pause := false
 
 func _ready() -> void:
@@ -58,8 +63,6 @@ func _ready() -> void:
 	call_deferred("_below_install_unified_hud")
 
 func _process(_delta: float) -> void:
-	if overlay.visible:
-		_refresh_food()
 	if carry_preview.visible:
 		carry_preview.position = get_viewport().get_mouse_position() + Vector2(18, 18)
 
@@ -139,6 +142,9 @@ func _connect_player() -> void:
 		return
 	if not inventory.changed.is_connected(_refresh_all):
 		inventory.changed.connect(_refresh_all)
+	# Система экипировки создаётся в player._ready(); если она ещё
+	# не готова — _get_equipment() подтянет её при первом обновлении.
+	_get_equipment()
 	# Подключение отложено до завершения _ready() остальных узлов,
 	# чтобы стартовая регистрация ItemRegistry не зависела от порядка сцены.
 	ItemRegistry.register_items(crafting_items)
@@ -160,8 +166,9 @@ func _build_views() -> void:
 	if slot_scene == null:
 		push_error("InventoryUI: Slot Scene не назначена")
 		return
-	_clear(main_grid); _clear(inventory_hotbar_grid); _clear(hotbar_grid); _clear(craft_grid); _clear(result_holder)
+	_clear(main_grid); _clear(inventory_hotbar_grid); _clear(hotbar_grid); _clear(craft_grid); _clear(result_holder); _clear(equipment_grid)
 	inventory_views.clear(); inventory_hotbar_views.clear(); hotbar_views.clear(); craft_views.clear()
+	equipment_views.clear(); equipment_slot_types.clear()
 	for i in range(27):
 		var v := _new_view(i)
 		main_grid.add_child(v)
@@ -188,100 +195,53 @@ func _build_views() -> void:
 	result_view = _new_view(0)
 	result_holder.add_child(result_view)
 	result_view.slot_pressed.connect(_on_result_pressed)
-	_build_food_slots()
+	_build_equipment_views()
 
-## Три ячейки питания: персонаж сам ест из них, каждая порция действует 25 минут.
-func _build_food_slots() -> void:
-	var column: Node = inventory_hotbar_grid.get_parent()
-	if column == null:
-		return
-	if food_row != null and is_instance_valid(food_row):
-		food_row.queue_free()
-	food_views.clear()
-	food_timer_labels.clear()
-
-	var title := Label.new()
-	title.text = "ЕДА — съедается сама, одна порция на 25 минут"
-	column.add_child(title)
-
-	food_row = HBoxContainer.new()
-	food_row.add_theme_constant_override("separation", 6)
-	column.add_child(food_row)
-
-	for i in range(3):
-		var cell := VBoxContainer.new()
-		cell.add_theme_constant_override("separation", 2)
-
+## Строит ячейки экипировки в порядке EquipmentSlot.ALL_SLOTS.
+## Индекс ячейки = индекс типа слота в equipment_slot_types,
+## поэтому сигнал slot_pressed отдаёт привычный номер строки/колонки.
+func _build_equipment_views() -> void:
+	for i in range(EquipmentSlot.ALL_SLOTS.size()):
+		var slot_type: EquipmentSlot.Type = EquipmentSlot.ALL_SLOTS[i]
 		var view := _new_view(i)
-		view.slot_pressed.connect(_on_food_slot_pressed)
-		cell.add_child(view)
+		view.slot_hint = EquipmentSlot.get_display_name(slot_type)
+		equipment_grid.add_child(view)
+		view.clear_display()
+		view.slot_pressed.connect(_on_equipment_slot_pressed)
+		view.slot_hovered.connect(_on_equipment_hover)
+		equipment_views.append(view)
+		equipment_slot_types.append(slot_type)
 
-		var timer_label := Label.new()
-		timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		timer_label.add_theme_font_size_override("font_size", 11)
-		cell.add_child(timer_label)
 
-		food_row.add_child(cell)
-		food_views.append(view)
-		food_timer_labels.append(timer_label)
+## Лениво находит систему экипировки игрока и подписывается на её
+## изменения. Возвращает null, если игрок ещё не инициализирован.
+func _get_equipment() -> EquipmentSystem:
+	if is_instance_valid(equipment):
+		return equipment
+	if player == null:
+		return null
+	equipment = player.get("equipment") as EquipmentSystem
+	if equipment != null and not equipment.equipment_changed.is_connected(_on_equipment_changed):
+		equipment.equipment_changed.connect(_on_equipment_changed)
+	return equipment
 
-func _refresh_food() -> void:
-	if player == null or food_views.is_empty():
+
+func _on_equipment_changed(_slot: EquipmentSlot.Type) -> void:
+	_refresh_equipment()
+
+
+## Обновляет содержимое ячеек экипировки.
+func _refresh_equipment() -> void:
+	if equipment_views.is_empty():
 		return
-	if not player.has_method("get_food_slot"):
-		return
-	for i in range(food_views.size()):
-		var data: Dictionary = player.call("get_food_slot", i)
-		if data.is_empty():
+	var system := _get_equipment()
+	for i in range(equipment_views.size()):
+		if system == null:
+			equipment_views[i].clear_display()
 			continue
-		var stored_id: StringName = StringName(data.get("stored_id", &""))
-		var stored_amount: int = int(data.get("stored_amount", 0))
-		var active_id: StringName = StringName(data.get("active_id", &""))
-		var time_left: float = float(data.get("time_left", 0.0))
-
-		# Показываем запас, а когда он кончился — действующее блюдо.
-		var stack := ItemStack.new()
-		if stored_amount > 0:
-			stack.set_item(stored_id, stored_amount)
-		elif active_id != &"":
-			stack.set_item(active_id, 1)
-		food_views[i].display_stack(stack)
-
-		if time_left > 0.0:
-			var seconds := ceili(time_left)
-			food_timer_labels[i].text = "%02d:%02d" % [seconds / 60, seconds % 60]
-			food_timer_labels[i].modulate = Color("8fe388")
-		else:
-			food_timer_labels[i].text = "пусто"
-			food_timer_labels[i].modulate = Color("6a6d73")
-
-func _on_food_slot_pressed(index: int, button: MouseButton) -> void:
-	if player == null or inventory == null:
-		return
-	if not player.has_method("add_food_to_slot"):
-		return
-
-	# В руке еда — кладём в ячейку.
-	if not carried.is_empty():
-		if not bool(player.call("is_food", carried.item_id)):
-			return
-		var put: int = carried.amount if button == MOUSE_BUTTON_LEFT else 1
-		var moved: int = int(player.call("add_food_to_slot", index, carried.item_id, put))
-		if moved > 0:
-			carried.amount -= moved
-			_clear_if_empty(carried)
-			_refresh_all()
-		return
-
-	# Рука пуста — забираем запас обратно.
-	var wanted: int = 9999 if button == MOUSE_BUTTON_LEFT else 1
-	var data: Dictionary = player.call("take_food_from_slot", index, wanted)
-	if data.is_empty():
-		return
-	var taken := ItemStack.new()
-	taken.set_item(StringName(data.get("item_id", &"")), int(data.get("amount", 0)))
-	carried = taken
-	_refresh_all()
+		equipment_views[i].display_stack(
+			system.get_equipped_stack(equipment_slot_types[i])
+		)
 
 func _refresh_all() -> void:
 	if inventory == null or inventory_views.is_empty():
@@ -304,12 +264,60 @@ func _refresh_all() -> void:
 	else:
 		var item: ItemData = ItemRegistry.get_item(selected.item_id)
 		selected_label.text = "%d — %s × %d" % [selected_hotbar + 1, item.display_name if item else str(selected.item_id), selected.amount]
+	_refresh_equipment()
 	_refresh_craft()
 	_refresh_carried()
-	_refresh_food()
 
 func _on_inventory_hover(index: int, entered: bool) -> void:
 	hovered_inventory_slot = index if entered else (-1 if hovered_inventory_slot == index else hovered_inventory_slot)
+
+func _on_equipment_hover(index: int, entered: bool) -> void:
+	hovered_equipment_slot = index if entered else (-1 if hovered_equipment_slot == index else hovered_equipment_slot)
+
+
+## Клик по ячейке экипировки: ЛКМ — наеть/снять весь предмет,
+## ПКМ — снять половину (для стаков). Надеть можно только 1 единицу,
+## вытесненная вещь возвращается на курсор.
+func _on_equipment_slot_pressed(index: int, button: MouseButton) -> void:
+	if index < 0 or index >= equipment_slot_types.size():
+		return
+	var system := _get_equipment()
+	if system == null:
+		return
+	var slot_type: EquipmentSlot.Type = equipment_slot_types[index]
+
+	if carried.is_empty():
+		var stack: ItemStack = system.get_equipped_stack(slot_type)
+		if stack.is_empty():
+			return
+		var amount := stack.amount if button == MOUSE_BUTTON_LEFT else ceili(stack.amount / 2.0)
+		carried = system.take_from_slot(slot_type, amount)
+		_refresh_all()
+		return
+
+	# На курсоре предмет: пробуем надеть (всегда 1 единица —
+	# оружие и броня занимают слот целиком).
+	if not system.can_accept_item(slot_type, carried.item_id):
+		# Двуручное оружие нельзя держать во вторичной руке:
+		# разрешаем хотя бы выбросить/положить обратно обменом.
+		_refresh_all()
+		return
+	var putting := ItemStack.new()
+	putting.item_id = carried.item_id
+	putting.amount = 1
+	var displaced: ItemStack = system.swap_single(slot_type, putting)
+	carried.amount -= 1
+	_clear_if_empty(carried)
+	if not displaced.is_empty():
+		if carried.is_empty():
+			carried = displaced
+		else:
+			# На курсоре уже есть предмет — вытесненную вещь
+			# кладём в инвентарь, иначе она упадёт на землю.
+			var accepted: int = inventory.add_item(displaced.item_id, displaced.amount)
+			if accepted < displaced.amount:
+				_spawn_dropped(displaced.item_id, displaced.amount - accepted)
+	_refresh_all()
 
 func _on_craft_hover(index: int, entered: bool) -> void:
 	hovered_craft_slot = index if entered else (-1 if hovered_craft_slot == index else hovered_craft_slot)
@@ -327,6 +335,11 @@ func _on_inventory_slot_pressed(
 				)
 				return
 
+	# Shift+ЛКМ по обычному инвентарю — быстрое надевание экипировки.
+	if button == MOUSE_BUTTON_LEFT and Input.is_key_pressed(KEY_SHIFT):
+		if _quick_equip_from_inventory(index):
+			return
+
 	_handle_stack_click(
 		inventory.get_slot(index),
 		button,
@@ -334,6 +347,37 @@ func _on_inventory_slot_pressed(
 		func(amount: int):
 			carried = inventory.take_from_slot(index, amount)
 	)
+
+## Shift+ЛКМ по ячейке инвентаря: надевает предмет в первый
+## подходящий слот экипировки. Пустые слоты предпочитаются занятым,
+## чтобы случайно не вытеснить надетую вещь. Возвращает false,
+## если предмет не является экипировкой — тогда работает обычный перенос.
+func _quick_equip_from_inventory(index: int) -> bool:
+	var system := _get_equipment()
+	if system == null or inventory == null:
+		return false
+	var stack: ItemStack = inventory.get_slot(index)
+	if stack == null or stack.is_empty():
+		return false
+
+	var fallback_slot := EquipmentSlot.Type.NONE
+	for slot_type: EquipmentSlot.Type in EquipmentSlot.ALL_SLOTS:
+		if not system.can_accept_item(slot_type, stack.item_id):
+			continue
+		if system.is_slot_empty(slot_type):
+			if system.equip_from_inventory(inventory, index, slot_type):
+				_refresh_all()
+				return true
+			return false
+		if fallback_slot == EquipmentSlot.Type.NONE:
+			fallback_slot = slot_type
+
+	if fallback_slot == EquipmentSlot.Type.NONE:
+		return false
+	if not system.equip_from_inventory(inventory, index, fallback_slot):
+		return false
+	_refresh_all()
+	return true
 
 func _on_craft_slot_pressed(index: int, button: MouseButton) -> void:
 	var target := craft_slots[index]
