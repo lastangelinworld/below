@@ -85,6 +85,10 @@ func _test_workbench() -> int:
 		load("res://data/recipes/bone_greatclub.tres"),
 		load("res://data/recipes/workbench.tres"),
 	]
+	var recipes2: Array = [
+		load("res://data/recipes/cloth_pants.tres"),
+		load("res://data/recipes/cloth_shirt.tres"),
+	]
 
 	# 1. Щит: квадрат 3×3 из девяти обломков со сдвигом (1,1).
 	for cell: int in [6, 7, 8, 11, 12, 13, 16, 17, 18]:
@@ -146,7 +150,33 @@ func _test_workbench() -> int:
 		print("GREATCLUB NOT MATCHED: ", found)
 		problems += 1
 
-	# 4. Лишний ресурс в сетке — рецепт не срабатывает и ничего не списывается.
+	# 4. Штаны 5×5: рисунок в середине сетки (узор можно ставить куда угодно).
+	for i: int in Workbench.GRID_SIZE:
+		bench.take_items(i, -1)
+	for cell: int in [5, 6, 7, 8, 9]:
+		bench.put_items(cell, &"fiber", 1)
+	bench.put_items(11, &"fiber", 1)
+	bench.put_items(12, &"fiber", 1)
+	bench.put_items(13, &"fiber", 1)
+	bench.put_items(15, &"fiber", 1)
+	bench.put_items(19, &"fiber", 1)
+	found = bench.find_recipe_with_offset(recipes2)
+	if found.get("recipe") == null or found["recipe"].recipe_id != &"cloth_pants":
+		print("PANTS (CENTERED 5x5) NOT MATCHED: ", found)
+		problems += 1
+	else:
+		var made: Dictionary = bench.craft(found["recipe"], found["offset"])
+		if made.get("item_id") != &"cloth_pants":
+			print("PANTS CRAFT FAILED: ", made)
+			problems += 1
+		var left := 0
+		for i: int in Workbench.GRID_SIZE:
+			left += bench.grid_amounts[i]
+		if left != 0:
+			print("PANTS LEFTOVER: ", left)
+			problems += 1
+
+	# 5. Лишний ресурс в сетке — рецепт не срабатывает и ничего не списывается.
 	for i: int in Workbench.GRID_SIZE:
 		bench.take_items(i, -1)
 	bench.put_items(0, &"fiber", 3)

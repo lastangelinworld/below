@@ -271,7 +271,9 @@ func _craft_shapeless(recipe: CraftingRecipe) -> Dictionary:
 
 
 ## Пары «ячейка сетки — требуемый предмет» для рисунка рецепта
-## при заданном сдвиге. Пустые клетки рецепта в список не входят.
+## при заданном сдвиге. Сдвиг отсчитывается от левого верхнего угла
+## плотного прямоугольника рисунка (content_bounds), а не от его
+## формальной сетки. Пустые клетки рецепта в список не входят.
 ## Возвращает пустой массив, если рисунок выходит за пределы сетки
 ## или не требует ни одного ресурса.
 func _pattern_cells(
@@ -280,6 +282,10 @@ func _pattern_cells(
 		side: int
 ) -> Array:
 	var cells: Array = []
+	var box: Rect2i = recipe.content_bounds()
+	if box.size.x <= 0 or box.size.y <= 0:
+		return []
+
 	for pattern_index: int in range(recipe.pattern.size()):
 		var required: StringName = recipe.pattern[pattern_index]
 		if required == &"":
@@ -287,8 +293,8 @@ func _pattern_cells(
 
 		var local_x: int = pattern_index % side
 		var local_y: int = pattern_index / side
-		var x: int = local_x + offset.x
-		var y: int = local_y + offset.y
+		var x: int = local_x - box.position.x + offset.x
+		var y: int = local_y - box.position.y + offset.y
 
 		if x < 0 or x >= GRID_SIDE or y < 0 or y >= GRID_SIDE:
 			return []

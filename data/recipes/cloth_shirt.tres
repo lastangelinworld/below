@@ -6,10 +6,10 @@
 script = ExtResource("1_recipe")
 recipe_id = &"cloth_shirt"
 pattern = Array[StringName]([
+	&"", &"", &"", &"", &"",
 	&"fiber", &"", &"", &"", &"fiber",
 	&"fiber", &"fiber", &"fiber", &"fiber", &"fiber",
 	&"", &"fiber", &"fiber", &"fiber", &"",
-	&"", &"", &"", &"", &"",
 	&"", &"", &"", &"", &""
 ])
 output_item_id = &"cloth_shirt"

@@ -578,11 +578,19 @@ func _on_result_pressed(_index: int, button: MouseButton) -> void:
 				remaining -= taken
 				_clear_if_empty(stack)
 	else:
-		# По одной единице из каждой непустой ячейки рисунка рецепта.
+		# По одной единице из каждой занятой клетки рисунка.
+		# offset — куда узор реально поставлен в сетке 3×3.
+		var offset: Vector2i = recipe.find_offset(craft_slots)
+		var side: int = recipe.pattern_side()
+		var box: Rect2i = recipe.content_bounds()
 		for i in range(recipe.pattern.size()):
 			if recipe.pattern[i] == &"":
 				continue
-			var stack: ItemStack = craft_slots[i]
+			var cell: int = (
+				(i / side - box.position.y + offset.y) * side
+				+ (i % side - box.position.x + offset.x)
+			)
+			var stack: ItemStack = craft_slots[cell]
 			stack.amount -= 1
 			_clear_if_empty(stack)
 

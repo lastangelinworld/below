@@ -53,9 +53,11 @@ static func grid_side_of(grid: Array) -> int:
 
 
 ## Находит смещение рисунка внутри сетки произвольного размера.
-## Рецепт 3×3 помещается в сетку 5×5 с любым сдвигом, поэтому
-## карманные рецепты остаются доступны и на верстаке.
-## Возвращает Vector2i(-1, -1), если рисунок не ложится без остатка.
+## Ищется по «плотному» прямоугольнику рисунка (без пустых полей),
+## поэтому узор можно ставить в любое место сетки, куда он помещается:
+## карманные рецепты доступны и на верстаке, а вертикальные
+## рецепты не привязаны к конкретной колонке.
+## Возвращает Vector2i(-1, -1), если рисунок не ложится.
 func find_offset(grid: Array) -> Vector2i:
 	var pattern_cells: int = pattern.size()
 	var grid_cells: int = grid.size()
@@ -70,19 +72,54 @@ func find_offset(grid: Array) -> Vector2i:
 	if is_shapeless:
 		return Vector2i.ZERO if _matches_shapeless(grid) else Vector2i(-1, -1)
 
-	for offset_y: int in range(big_side - small_side + 1):
-		for offset_x: int in range(big_side - small_side + 1):
-			if _matches_at(grid, big_side, small_side, offset_x, offset_y):
+	var box: Rect2i = content_bounds()
+	if box.size.x <= 0 or box.size.y <= 0:
+		return Vector2i(-1, -1)
+	if box.size.x > big_side or box.size.y > big_side:
+		return Vector2i(-1, -1)
+
+	for offset_y: int in range(big_side - box.size.y + 1):
+		for offset_x: int in range(big_side - box.size.x + 1):
+			if _matches_box(grid, big_side, small_side, box, offset_x, offset_y):
 				return Vector2i(offset_x, offset_y)
 
 	return Vector2i(-1, -1)
+
+
+## Прямоугольник непустых клеток рисунка в координатах его собственной
+## сетки. Пустой рисунок возвращает Rect2i() с нулевым размером.
+func content_bounds() -> Rect2i:
+	var side: int = pattern_side()
+	if side <= 0:
+		return Rect2i()
+
+	var min_x := side
+	var min_y := side
+	var max_x := -1
+	var max_y := -1
+	for i: int in range(pattern.size()):
+		if pattern[i] == &"":
+			continue
+		var x: int = i % side
+		var y: int = i / side
+		min_x = mini(min_x, x)
+		min_y = mini(min_y, y)
+		max_x = maxi(max_x, x)
+		max_y = maxi(max_y, y)
+
+	if max_x < 0:
+		return Rect2i()
+	return Rect2i(min_x, min_y, max_x - min_x + 1, max_y - min_y + 1)
 
 
 ## Точное совпадение: рисунок и сетка одинаковой стороны.
 func matches(grid: Array) -> bool:
 	if grid.size() != pattern.size():
 		return false
-	return _matches_at(grid, pattern_side(), pattern_side(), 0, 0)
+	var box: Rect2i = content_bounds()
+	if box.size.x <= 0 or box.size.y <= 0:
+		return false
+	return _matches_box(grid, pattern_side(), pattern_side(), box, 0, 0)
 
 
 ## Совпадение с учётом сдвига: годится и для сетки большего размера.
@@ -118,10 +155,14 @@ func _matches_shapeless(grid: Array) -> bool:
 	return total == required_total
 
 
-func _matches_at(
+## Сверяет сетку с плотным прямоугольником рисунка при заданном
+## смещении его левого верхнего угла. Клетки вне прямоугольника
+## обязаны быть пустыми — посторонние предметы крафту мешают.
+func _matches_box(
 		grid: Array,
 		big_side: int,
 		small_side: int,
+		box: Rect2i,
 		offset_x: int,
 		offset_y: int
 ) -> bool:
@@ -133,11 +174,13 @@ func _matches_at(
 
 			if (
 				inner_x >= 0
-				and inner_x < small_side
+				and inner_x < box.size.x
 				and inner_y >= 0
-				and inner_y < small_side
+				and inner_y < box.size.y
 			):
-				expected = pattern[inner_y * small_side + inner_x]
+				var pattern_x: int = inner_x + box.position.x
+				var pattern_y: int = inner_y + box.position.y
+				expected = pattern[pattern_y * small_side + pattern_x]
 
 			var actual: StringName = &""
 			var stack: Variant = grid[y * big_side + x]
