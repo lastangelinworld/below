@@ -19,6 +19,7 @@
 [ext_resource type="Script" uid="uid://bjwo06xayys40" path="res://scripts/gameplay_interactions.gd" id="15_gameplayinteractions"]
 [ext_resource type="Script" uid="uid://bsvf2xq4mo7of" path="res://scripts/status_bar_numbers.gd" id="16_statusbarnumbers"]
 [ext_resource type="PackedScene" uid="uid://b3vh1hsnj2exj" path="res://data/recipes/chest_container.tscn" id="19_jvuuw"]
+[ext_resource type="PackedScene" uid="uid://b5v7rk2h3x9q1" path="res://data/world/workbench.tscn" id="20_workbench"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_s7l2s"]
 texture = ExtResource("1_bbi8e")
@@ -68,6 +69,7 @@ debug_label = NodePath("../../UI/DebugInterface/TargetDebugLabel")
 [node name="CampfirePlacement" type="Node" parent="." unique_id=1207010454]
 script = ExtResource("14_campfire_placement")
 chest_scene = ExtResource("19_jvuuw")
+workbench_scene = ExtResource("20_workbench")
 
 [node name="Player" parent="." unique_id=1776581139 node_paths=PackedStringArray("terrain") instance=ExtResource("1_tu1po")]
 position = Vector2(-18, 100)

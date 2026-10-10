@@ -42,6 +42,12 @@ var _baselines: Dictionary = {}
 var _player: Node = null
 var _totals: Dictionary = {}
 var _applying: bool = false
+## Дополнительные слоты, занятые чужим предметом:
+## ключ — слот, значение — основной слот владельца.
+var _extra_owners: Dictionary = {}
+## Предметы, вытесненные из дополнительных слотов при надевании
+## двуручного оружия. Интерфейс забирает их через drain_ejections().
+var _ejections: Array = []
 
 
 func _ready() -> void:
@@ -76,7 +82,7 @@ func equip_from_inventory(
 	if stack == null or stack.is_empty():
 		return false
 	var component: EquipmentComponent = _get_component(stack.item_id)
-	if component == null or not component.can_equip_to(target_slot):
+	if component == null or not component.can_place_in(target_slot):
 		return false
 
 	var taken: ItemStack = inventory.take_from_slot(inventory_slot_index, 1)
@@ -84,6 +90,7 @@ func equip_from_inventory(
 		return false
 
 	var replaced: ItemStack = _put_stack(target_slot, taken)
+	_claim_extra_slots(target_slot, component)
 	if not replaced.is_empty():
 		var returned: int = inventory.add_item(replaced.item_id, replaced.amount)
 		if returned < replaced.amount:
@@ -91,6 +98,11 @@ func equip_from_inventory(
 			# а новую кладём обратно в инвентарь, чтобы ничего не пропало.
 			inventory.add_item(taken.item_id, taken.amount)
 			_put_stack(target_slot, replaced)
+			_release_extra_slots(target_slot)
+			_claim_extra_slots(
+				target_slot,
+				_get_component(replaced.item_id)
+			)
 			_recalculate()
 			equipment_changed.emit(target_slot)
 			return false
@@ -115,6 +127,7 @@ func unequip_to_inventory(
 	if accepted <= 0:
 		return false
 	var removed: ItemStack = _put_stack(target_slot, ItemStack.new())
+	_release_extra_slots(target_slot)
 	_recalculate()
 	equipment_changed.emit(target_slot)
 	item_unequipped.emit(target_slot, removed.item_id)
@@ -128,31 +141,48 @@ func get_equipped_stack(slot: EquipmentSlot.Type) -> ItemStack:
 	return stack
 
 
+## Стек для отображения в ячейке. Ячейка дополнительного слота
+## показывает предмет, который её занял (двуручное оружие).
+func get_display_stack(slot: EquipmentSlot.Type) -> ItemStack:
+	return get_equipped_stack(get_owning_slot(slot))
+
+
+## Ячейка занята чужим предметом как дополнительный слот.
+func is_secondary_cell(slot: EquipmentSlot.Type) -> bool:
+	return _extra_owners.has(slot)
+
+
+## Основной слот предмета, который видно в этой ячейке.
+func get_owning_slot(slot: EquipmentSlot.Type) -> EquipmentSlot.Type:
+	if _extra_owners.has(slot):
+		return _extra_owners[slot]
+	return slot
+
+
 func is_slot_empty(slot: EquipmentSlot.Type) -> bool:
-	return get_equipped_stack(slot).is_empty()
+	return get_display_stack(slot).is_empty()
 
 
 ## Проверка для интерфейса: можно ли надеть предмет в слот
 ## без учёта места в инвентаре.
+## В дополнительный слот двуручного оружия ничего нельзя положить
+## отдельно — он освобождается только вместе с самим оружием.
 func can_accept_item(slot: EquipmentSlot.Type, item_id: StringName) -> bool:
+	if is_secondary_cell(slot):
+		return false
 	var component: EquipmentComponent = _get_component(item_id)
 	if component == null:
 		return false
-	if not component.can_equip_to(slot):
-		return false
-	# Двуручное оружие вытесняет щит, иначе в руках два предмета сразу.
-	if component.is_dual_hand and slot == EquipmentSlot.Type.MAINHAND:
-		return true
-	if component.is_dual_hand and slot == EquipmentSlot.Type.OFFHAND:
-		return false
-	return true
+	return component.can_place_in(slot)
 
 
 ## Снимает до amount единиц из слота и возвращает их отдельным стеком
 ## (используется перетаскиванием в интерфейсе).
+## Снятие с дополнительного слота снимает весь предмет из основного.
 func take_from_slot(slot: EquipmentSlot.Type, amount: int = -1) -> ItemStack:
 	var result := ItemStack.new()
-	var stack: ItemStack = get_equipped_stack(slot)
+	var owner: EquipmentSlot.Type = get_owning_slot(slot)
+	var stack: ItemStack = get_equipped_stack(owner)
 	if stack.is_empty():
 		return result
 	var taken_amount: int = stack.amount if amount < 0 else mini(amount, stack.amount)
@@ -162,8 +192,9 @@ func take_from_slot(slot: EquipmentSlot.Type, amount: int = -1) -> ItemStack:
 	if stack.amount <= 0:
 		stack.item_id = &""
 		stack.amount = 0
+		_release_extra_slots(owner)
 	_recalculate()
-	equipment_changed.emit(slot)
+	equipment_changed.emit(owner)
 	return result
 
 
@@ -172,6 +203,7 @@ func take_from_slot(slot: EquipmentSlot.Type, amount: int = -1) -> ItemStack:
 ## (can_accept_item) выполняет вызывающая сторона.
 func swap_single(slot: EquipmentSlot.Type, incoming: ItemStack) -> ItemStack:
 	var outgoing: ItemStack = _put_stack(slot, incoming)
+	_claim_extra_slots(slot, _get_component(incoming.item_id))
 	_recalculate()
 	equipment_changed.emit(slot)
 	if not outgoing.is_empty():
@@ -218,6 +250,7 @@ func load_state(state: Dictionary) -> void:
 		return
 	for slot: EquipmentSlot.Type in EquipmentSlot.ALL_SLOTS:
 		_put_stack(slot, ItemStack.new())
+	_extra_owners.clear()
 	var slots_data: Variant = state.get("slots", {})
 	if typeof(slots_data) != TYPE_DICTIONARY:
 		return
@@ -234,8 +267,57 @@ func load_state(state: Dictionary) -> void:
 		if stack == null:
 			continue
 		stack.set_item(StringName(str(entry.get("item_id", ""))), int(entry.get("amount", 0)))
+	_refresh_extra_owners()
 	_recalculate()
 	equipment_changed.emit(EquipmentSlot.Type.NONE)
+
+
+## Предметы, вытесненные из дополнительных слотов (двуручное оружие
+## заняло руку со щитом). Интерфейс забирает их после операции обмена
+## и раскладывает по инвентарю.
+func drain_ejections() -> Array:
+	var result: Array = _ejections.duplicate()
+	_ejections.clear()
+	return result
+
+
+## Занимает дополнительные слоты предмета, вытесняя то, что в них лежало.
+## Вытесненные предметы попадают в _ejections.
+func _claim_extra_slots(
+		owner_slot: EquipmentSlot.Type,
+		component: EquipmentComponent
+) -> void:
+	_release_extra_slots(owner_slot)
+	if component == null:
+		return
+
+	for extra: EquipmentSlot.Type in component.extra_slots:
+		if extra == owner_slot:
+			continue
+		var occupant: ItemStack = get_equipped_stack(extra)
+		if not occupant.is_empty():
+			_ejections.append(_put_stack(extra, ItemStack.new()))
+		_extra_owners[extra] = owner_slot
+
+
+## Освобождает дополнительные слоты, закреплённые за основным слотом.
+func _release_extra_slots(owner_slot: EquipmentSlot.Type) -> void:
+	var stale: Array = []
+	for extra: EquipmentSlot.Type in _extra_owners.keys():
+		if _extra_owners[extra] == owner_slot:
+			stale.append(extra)
+	for extra: Variant in stale:
+		_extra_owners.erase(extra)
+
+
+## Пересобирает карту дополнительных слотов после загрузки сохранений.
+func _refresh_extra_owners() -> void:
+	_extra_owners.clear()
+	for slot: EquipmentSlot.Type in EquipmentSlot.ALL_SLOTS:
+		var stack: ItemStack = _slots.get(slot)
+		if stack == null or stack.is_empty():
+			continue
+		_claim_extra_slots(slot, _get_component(stack.item_id))
 
 
 func _put_stack(slot: EquipmentSlot.Type, incoming: ItemStack) -> ItemStack:

@@ -1,17 +1,18 @@
 class_name EquipmentSlot
 extends RefCounted
 
-## Типы слотов экипировки второй фазы.
+## Типы слотов экипировки.
+## Числовые значения зафиксированы: их сохраняют файлы сохранений.
+## Удалённые типы Щит (4) и Лампа (8) — исторические: щит и факел
+## — это вторичное оружие, они используют слот OFFHAND.
 enum Type {
 	NONE = 0,
 	HEAD = 1,
 	CHEST = 2,
 	LEGS = 3,
-	SHIELD = 4,
 	RING_LEFT = 5,
 	RING_RIGHT = 6,
 	NECKLACE = 7,
-	LAMP = 8,
 	MAINHAND = 9,
 	OFFHAND = 10,
 }
@@ -24,8 +25,6 @@ const ALL_SLOTS: Array[Type] = [
 	Type.NECKLACE,
 	Type.RING_LEFT,
 	Type.RING_RIGHT,
-	Type.SHIELD,
-	Type.LAMP,
 	Type.MAINHAND,
 	Type.OFFHAND,
 ]
@@ -37,21 +36,17 @@ const RING_SLOTS: Array[Type] = [Type.RING_LEFT, Type.RING_RIGHT]
 static func get_display_name(slot: Type) -> String:
 	match slot:
 		Type.HEAD:
-			return "Шлем"
+			return "Голова"
 		Type.CHEST:
-			return "Нагрудник"
+			return "Торс"
 		Type.LEGS:
-			return "Штаны"
-		Type.SHIELD:
-			return "Щит"
+			return "Ноги"
 		Type.RING_LEFT:
 			return "Кольцо (левое)"
 		Type.RING_RIGHT:
 			return "Кольцо (правое)"
 		Type.NECKLACE:
 			return "Ожерелье"
-		Type.LAMP:
-			return "Лампа"
 		Type.MAINHAND:
 			return "Основное оружие"
 		Type.OFFHAND:
@@ -66,7 +61,13 @@ static func holds_single_item(slot: Type) -> bool:
 
 
 ## Превращает число из сохранённого файла обратно в корректный слот.
+## Старые сохранения могли содержать удалённые слоты «Щит» (4)
+## и «Лампа» (8): оба превращаются во вторичное оружие.
 static func sanitize(raw_value: int) -> Type:
-	if raw_value >= Type.HEAD and raw_value <= Type.OFFHAND:
-		return raw_value as Type
-	return Type.NONE
+	match raw_value:
+		4, 8:
+			return Type.OFFHAND
+		Type.HEAD, Type.CHEST, Type.LEGS, Type.RING_LEFT, Type.RING_RIGHT, Type.NECKLACE, Type.MAINHAND, Type.OFFHAND:
+			return raw_value as Type
+		_:
+			return Type.NONE

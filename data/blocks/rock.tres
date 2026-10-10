@@ -9,6 +9,12 @@ item_id = &"flint"
 probability = 0.2
 metadata/_custom_type_script = "uid://dcnol6cwfjl7v"
 
+[sub_resource type="Resource" id="Resource_bone"]
+script = ExtResource("1_4qagj")
+item_id = &"bone"
+probability = 0.18
+metadata/_custom_type_script = "uid://dcnol6cwfjl7v"
+
 [resource]
 script = ExtResource("1")
 block_id = &"rock"
@@ -16,6 +22,6 @@ display_name = "Камень"
 max_health = 5
 noise_per_hit = 10
 break_particle_color = Color(0.55, 0.55, 0.58, 1)
-drops = Array[ExtResource("1_4qagj")]([SubResource("Resource_auxb3")])
+drops = Array[ExtResource("1_4qagj")]([SubResource("Resource_auxb3"), SubResource("Resource_bone")])
 drop_item_id = &"stone"
 drop_amount = 1

@@ -23,9 +23,15 @@ var input_views: Array[InventorySlotUI] = []
 var output_views: Array[InventorySlotUI] = []
 var fuel_views: Array[InventorySlotUI] = []
 var chest_views: Array[InventorySlotUI] = []
+var workbench_views: Array[InventorySlotUI] = []
+var workbench_result_view: InventorySlotUI
 
 var fuel_bars: Array[ProgressBar] = []
 var fuel_labels: Array[Label] = []
+
+## Рецепт, подобранный под содержимое ячеек верстака при
+## последнем обновлении интерфейса.
+var workbench_recipe: CraftingRecipe = null
 
 var refresh_elapsed := 0.0
 
@@ -132,11 +138,13 @@ func _process(delta: float) -> void:
 
 	if nearest != null and hint_label != null:
 		hint_label.visible = true
-		hint_label.text = (
-			"E — открыть сундук"
-			if nearest.is_in_group("storage_chest")
-			else "E — открыть костёр"
-		)
+
+		if nearest.is_in_group("storage_chest"):
+			hint_label.text = "E — открыть сундук"
+		elif nearest is Workbench:
+			hint_label.text = "E — открыть верстак"
+		else:
+			hint_label.text = "E — открыть костёр"
 
 
 func _inventory_is_open() -> bool:
@@ -155,7 +163,8 @@ func _nearest_interactable() -> Node2D:
 
 	for group_name: String in [
 		"storage_chest",
-		"campfire_interactable"
+		"campfire_interactable",
+		"workbench_interactable"
 	]:
 		for node: Node in get_tree().get_nodes_in_group(group_name):
 			var candidate := node as Node2D
@@ -163,7 +172,11 @@ func _nearest_interactable() -> Node2D:
 			if candidate == null:
 				continue
 
-			if not (candidate is Campfire or candidate is ChestContainer):
+			if not (
+				candidate is Campfire
+				or candidate is ChestContainer
+				or candidate is Workbench
+			):
 				continue
 
 			var distance: float = player.global_position.distance_to(
@@ -207,7 +220,13 @@ func _open_target(target: Node2D) -> void:
 		return
 
 	active_target = target
-	mode = "campfire" if target is Campfire else "chest"
+
+	if target is Campfire:
+		mode = "campfire"
+	elif target is Workbench:
+		mode = "workbench"
+	else:
+		mode = "chest"
 
 	# Сохраняем видимость обычных элементов крафта.
 	hidden_controls.clear()
@@ -242,6 +261,8 @@ func _open_target(target: Node2D) -> void:
 
 		_add_heading("ТОПЛИВО")
 		_build_fuel_grid()
+	elif mode == "workbench":
+		_build_workbench_interface()
 	else:
 		var chest := target as ChestContainer
 		chest._ensure_storage()
@@ -253,12 +274,20 @@ func _open_target(target: Node2D) -> void:
 		)
 
 	var instructions := Label.new()
-	instructions.text = (
-		"ЛКМ — взять / положить стак\n"
-		+ "ПКМ — положить 1\n"
-		+ "Мясо — только 1 в ячейку\n"
-		+ "Shift + ЛКМ — быстрый перенос"
-	)
+	if mode == "workbench":
+		instructions.text = (
+			"ЛКМ — взять / положить стак\n"
+			+ "ПКМ — положить 1\n"
+			+ "Shift + ЛКМ — быстрый перенос\n"
+			+ "ЛКМ по результату — создать предмет"
+		)
+	else:
+		instructions.text = (
+			"ЛКМ — взять / положить стак\n"
+			+ "ПКМ — положить 1\n"
+			+ "Мясо — только 1 в ячейку\n"
+			+ "Shift + ЛКМ — быстрый перенос"
+		)
 	panel.add_child(instructions)
 
 	var close_button := Button.new()
@@ -332,6 +361,132 @@ func _build_fuel_grid() -> void:
 		fuel_labels.append(label)
 
 
+## Строит колонку крафта верстака: сетка 5×5 и ячейка результата.
+func _build_workbench_interface() -> void:
+	_add_heading("ЯЧЕЙКИ КРАФТА 5 × 5")
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	panel.add_child(row)
+
+	var grid := GridContainer.new()
+	grid.columns = Workbench.GRID_SIDE
+	row.add_child(grid)
+
+	for i: int in range(Workbench.GRID_SIZE):
+		var view := ui.slot_scene.instantiate() as InventorySlotUI
+		view.setup(i)
+		grid.add_child(view)
+		view.slot_pressed.connect(
+			_on_slot_pressed.bind("wb")
+		)
+		workbench_views.append(view)
+
+	var arrow := Label.new()
+	arrow.text = "→"
+	arrow.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(arrow)
+
+	var result_box := VBoxContainer.new()
+	row.add_child(result_box)
+
+	var result_label := Label.new()
+	result_label.text = "РЕЗУЛЬТАТ"
+	result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	result_box.add_child(result_label)
+
+	workbench_result_view = (
+		ui.slot_scene.instantiate() as InventorySlotUI
+	)
+	workbench_result_view.setup(0)
+	result_box.add_child(workbench_result_view)
+	workbench_result_view.slot_pressed.connect(
+		_on_slot_pressed.bind("wb_result")
+	)
+
+
+## Собирает все рецепты, доступные на верстаке: обычные рецепты
+## интерфейса плюс собственные рецепты верстака. Дубликаты отбрасываются.
+func _collect_workbench_recipes() -> Array:
+	var all: Array = []
+	var sources: Array = []
+
+	if is_instance_valid(ui):
+		sources.append(ui.crafting_recipes)
+
+	var workbench := active_target as Workbench
+	if workbench != null:
+		sources.append(workbench.recipes)
+
+	for source: Array in sources:
+		for recipe: CraftingRecipe in source:
+			if not _is_usable_recipe(recipe):
+				continue
+			if all.has(recipe):
+				continue
+			all.append(recipe)
+
+	return all
+
+
+## Проверка рецепта на пригодность: корректная форма, зарегистрированный
+## и вмещающийся в стак результат, непустой рисунок.
+## Рецепт должен помещаться в сетку верстака 5×5 (годятся и 3×3).
+func _is_usable_recipe(recipe: CraftingRecipe) -> bool:
+	if recipe == null:
+		return false
+	var side: int = recipe.pattern_side()
+	if side <= 0 or side > Workbench.GRID_SIDE:
+		return false
+	if recipe.output_item_id == &"" or recipe.output_amount <= 0:
+		return false
+
+	var item: ItemData = ItemRegistry.get_item(recipe.output_item_id)
+	if item == null or recipe.output_amount > item.max_stack:
+		return false
+
+	for ingredient_id: StringName in recipe.pattern:
+		if ingredient_id != &"":
+			return true
+	return false
+
+
+## Создание предмета из ячейки результата. Проверки выполняются до
+## списания ингредиентов, поэтому при отказе содержимое не теряется.
+func _craft_workbench_result() -> void:
+	var workbench := active_target as Workbench
+	if workbench == null:
+		return
+
+	var found: Dictionary = workbench.find_recipe_with_offset(
+		_collect_workbench_recipes()
+	)
+	if found.is_empty():
+		return
+
+	var recipe: CraftingRecipe = found["recipe"]
+
+	var item: ItemData = ItemRegistry.get_item(recipe.output_item_id)
+	if item == null:
+		return
+
+	var carried_amount := 0
+	if not ui.carried.is_empty():
+		if ui.carried.item_id != recipe.output_item_id:
+			return
+		carried_amount = ui.carried.amount
+
+	if carried_amount + recipe.output_amount > item.max_stack:
+		return
+
+	var result: Dictionary = workbench.craft(recipe, found["offset"])
+	if result.is_empty():
+		return
+
+	ui.carried.item_id = StringName(result["item_id"])
+	ui.carried.amount = carried_amount + int(result["amount"])
+
+
 func close_window() -> void:
 	if panel == null:
 		return
@@ -363,6 +518,9 @@ func close_window() -> void:
 	output_views.clear()
 	fuel_views.clear()
 	chest_views.clear()
+	workbench_views.clear()
+	workbench_result_view = null
+	workbench_recipe = null
 
 	fuel_bars.clear()
 	fuel_labels.clear()
@@ -450,6 +608,48 @@ func _refresh_ui() -> void:
 						- fire.ready_progress[i]
 					)
 				)
+	elif mode == "workbench":
+		var workbench := active_target as Workbench
+
+		title_label.text = "ВЕРСТАК"
+		timer_label.text = ""
+
+		for i: int in range(Workbench.GRID_SIZE):
+			_display(
+				workbench_views[i],
+				workbench.grid_ids[i],
+				workbench.grid_amounts[i]
+			)
+
+		# Рецепт подбирается заново по текущему содержимому ячеек.
+		var found: Dictionary = workbench.find_recipe_with_offset(
+			_collect_workbench_recipes()
+		)
+		workbench_recipe = found.get("recipe")
+
+		var output := ItemStack.new()
+		if workbench_recipe != null:
+			output.item_id = workbench_recipe.output_item_id
+			output.amount = workbench_recipe.output_amount
+
+		if workbench_result_view != null:
+			workbench_result_view.display_stack(output)
+
+			if workbench_recipe != null:
+				var result_item: ItemData = ItemRegistry.get_item(
+					workbench_recipe.output_item_id
+				)
+				var result_name: String = (
+					result_item.display_name
+					if result_item != null
+					else str(workbench_recipe.output_item_id)
+				)
+				workbench_result_view.tooltip_text = (
+					"%s × %d\nЛКМ — создать" % [
+						result_name,
+						workbench_recipe.output_amount,
+					]
+				)
 	else:
 		var chest := active_target as ChestContainer
 		title_label.text = "СУНДУК — %d ЯЧЕЕК" % chest.storage_size
@@ -469,6 +669,15 @@ func _on_slot_pressed(
 		kind: String
 ) -> void:
 	if not is_instance_valid(active_target):
+		return
+
+	# Ячейка результата верстака: предмет только создаётся,
+	# забирать или класть в неё ничего нельзя.
+	if kind == "wb_result":
+		if button == MOUSE_BUTTON_LEFT:
+			_craft_workbench_result()
+		ui._refresh_all()
+		_refresh_ui()
 		return
 
 	if button == MOUSE_BUTTON_LEFT:
@@ -502,6 +711,16 @@ func _pick_from_object(
 			count = ceili(float(count) / 2.0)
 
 		result = chest.take_items(index, count)
+	elif kind == "wb":
+		var workbench := active_target as Workbench
+		var count: int = workbench.grid_amounts[index]
+
+		if button == MOUSE_BUTTON_RIGHT:
+			count = ceili(float(count) / 2.0)
+
+		# ПКМ по незанятой ячейке ничего не отдаёт.
+		if count > 0:
+			result = workbench.take_items(index, count)
 	else:
 		var fire := active_target as Campfire
 
@@ -573,6 +792,28 @@ func _put_into_object(
 			ui.carried.item_id = old_id
 			ui.carried.amount = old_amount
 			return
+	elif kind == "wb":
+		var workbench := active_target as Workbench
+
+		# put_items сам разбирается: заполняет пустую ячейку
+		# и докладывает предмет к такому же стаку.
+		moved = workbench.put_items(
+			index,
+			ui.carried.item_id,
+			requested
+		)
+
+		# ЛКМ по чужому предмету меняет его местами
+		# с предметом в руке. ПКМ обмен не производит.
+		if moved <= 0 and button == MOUSE_BUTTON_LEFT:
+			var displaced: Dictionary = workbench.swap_cell(
+				index,
+				ui.carried.item_id,
+				ui.carried.amount
+			)
+			ui.carried.item_id = StringName(displaced["item_id"])
+			ui.carried.amount = int(displaced["amount"])
+			return
 	else:
 		var fire := active_target as Campfire
 
@@ -632,6 +873,16 @@ func quick_transfer_player(index: int) -> void:
 	if mode == "chest":
 		var chest := active_target as ChestContainer
 		moved = chest.store_items(stack.item_id, stack.amount)
+	elif mode == "workbench":
+		var workbench := active_target as Workbench
+		var cell: int = workbench.find_free_cell_for(stack.item_id)
+
+		if cell >= 0:
+			moved = workbench.put_items(
+				cell,
+				stack.item_id,
+				stack.amount
+			)
 	else:
 		var fire := active_target as Campfire
 
@@ -656,6 +907,10 @@ func _quick_from_object(index: int, kind: String) -> void:
 		var chest := active_target as ChestContainer
 		item_id = chest.storage_ids[index]
 		amount = chest.storage_amounts[index]
+	elif kind == "wb":
+		var workbench := active_target as Workbench
+		item_id = workbench.grid_ids[index]
+		amount = workbench.grid_amounts[index]
 	else:
 		var fire := active_target as Campfire
 
@@ -684,6 +939,9 @@ func _quick_from_object(index: int, kind: String) -> void:
 	if kind == "chest":
 		var chest := active_target as ChestContainer
 		chest.take_items(index, accepted)
+	elif kind == "wb":
+		var workbench := active_target as Workbench
+		workbench.take_items(index, accepted)
 	else:
 		var fire := active_target as Campfire
 

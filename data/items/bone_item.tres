@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/temp/bone_temp.svg" id="2_temp"]
+[ext_resource type="Script" path="res://scripts/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+item_id = &"bone"
+display_name = "Кость"
+name_few = "кости"
+name_many = "костей"
+unit_weight_kg = 0.3
+icon = ExtResource("2_temp")

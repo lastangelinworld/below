@@ -1,0 +1,63 @@
+[gd_scene load_steps=13 format=3 uid="uid://b5v7rk2h3x9q1"]
+
+[ext_resource type="Script" path="res://scripts/workbench.gd" id="1_workbench"]
+[ext_resource type="Script" uid="uid://dmwkhfh53qwo0" path="res://scripts/crafting_recipe.gd" id="1_recipe"]
+[ext_resource type="Resource" path="res://data/recipes/wood_shield.tres" id="2_r1"]
+[ext_resource type="Resource" path="res://data/recipes/cloth_hat.tres" id="2_r2"]
+[ext_resource type="Resource" path="res://data/recipes/cloth_shirt.tres" id="2_r3"]
+[ext_resource type="Resource" path="res://data/recipes/cloth_pants.tres" id="2_r4"]
+[ext_resource type="Resource" path="res://data/recipes/bone_greatclub.tres" id="2_r5"]
+[ext_resource type="Resource" path="res://data/recipes/iron_sword.tres" id="2_r6"]
+[ext_resource type="Resource" path="res://data/recipes/iron_pickaxe_recipe.tres" id="2_r7"]
+[ext_resource type="Resource" path="res://data/recipes/iron_chestplate_recipe.tres" id="2_r8"]
+[ext_resource type="Resource" path="res://data/recipes/bone_pickaxe.tres" id="2_r9"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_workbench"]
+size = Vector2(32, 20)
+
+[node name="Workbench" type="StaticBody2D"]
+script = ExtResource("1_workbench")
+recipes = Array[ExtResource("1_recipe")]([
+	ExtResource("2_r1"),
+	ExtResource("2_r2"),
+	ExtResource("2_r3"),
+	ExtResource("2_r4"),
+	ExtResource("2_r5"),
+	ExtResource("2_r6"),
+	ExtResource("2_r7"),
+	ExtResource("2_r8"),
+	ExtResource("2_r9")
+])
+
+[node name="Placeholder" type="Node2D" parent="."]
+
+[node name="Top" type="Polygon2D" parent="Placeholder"]
+color = Color(0.3, 0.19, 0.1, 1)
+polygon = PackedVector2Array(-16, -20, 16, -20, 16, -14, -16, -14)
+
+[node name="Body" type="Polygon2D" parent="Placeholder"]
+color = Color(0.45, 0.29, 0.15, 1)
+polygon = PackedVector2Array(-14, -14, 14, -14, 14, -4, -14, -4)
+
+[node name="LeftLeg" type="Polygon2D" parent="Placeholder"]
+color = Color(0.24, 0.15, 0.08, 1)
+polygon = PackedVector2Array(-14, -14, -10, -14, -10, 0, -14, 0)
+
+[node name="RightLeg" type="Polygon2D" parent="Placeholder"]
+color = Color(0.24, 0.15, 0.08, 1)
+polygon = PackedVector2Array(10, -14, 14, -14, 14, 0, 10, 0)
+
+[node name="Tool" type="Polygon2D" parent="Placeholder"]
+color = Color(0.62, 0.65, 0.7, 1)
+polygon = PackedVector2Array(-7, -24, 3, -24, 3, -20, -7, -20)
+
+[node name="ToolHandle" type="Polygon2D" parent="Placeholder"]
+color = Color(0.5, 0.32, 0.16, 1)
+polygon = PackedVector2Array(3, -23, 8, -23, 8, -21, 3, -21)
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(0, -10)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -10)
+shape = SubResource("RectangleShape2D_workbench")

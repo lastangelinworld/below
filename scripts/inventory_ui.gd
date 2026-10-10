@@ -240,7 +240,7 @@ func _refresh_equipment() -> void:
 			equipment_views[i].clear_display()
 			continue
 		equipment_views[i].display_stack(
-			system.get_equipped_stack(equipment_slot_types[i])
+			system.get_display_stack(equipment_slot_types[i])
 		)
 
 func _refresh_all() -> void:
@@ -275,9 +275,11 @@ func _on_equipment_hover(index: int, entered: bool) -> void:
 	hovered_equipment_slot = index if entered else (-1 if hovered_equipment_slot == index else hovered_equipment_slot)
 
 
-## Клик по ячейке экипировки: ЛКМ — наеть/снять весь предмет,
+## Клик по ячейке экипировки: ЛКМ — надеть/снять весь предмет,
 ## ПКМ — снять половину (для стаков). Надеть можно только 1 единицу,
 ## вытесненная вещь возвращается на курсор.
+## Ячейка дополнительного слота (вторая рука двуручного оружия)
+## снимает предмет целиком вместе с основным слотом.
 func _on_equipment_slot_pressed(index: int, button: MouseButton) -> void:
 	if index < 0 or index >= equipment_slot_types.size():
 		return
@@ -287,10 +289,13 @@ func _on_equipment_slot_pressed(index: int, button: MouseButton) -> void:
 	var slot_type: EquipmentSlot.Type = equipment_slot_types[index]
 
 	if carried.is_empty():
-		var stack: ItemStack = system.get_equipped_stack(slot_type)
+		var stack: ItemStack = system.get_display_stack(slot_type)
 		if stack.is_empty():
 			return
-		var amount := stack.amount if button == MOUSE_BUTTON_LEFT else ceili(stack.amount / 2.0)
+		# Из занятой дополнительной руки берут только весь предмет.
+		var amount := stack.amount
+		if button == MOUSE_BUTTON_RIGHT and not system.is_secondary_cell(slot_type):
+			amount = ceili(stack.amount / 2.0)
 		carried = system.take_from_slot(slot_type, amount)
 		_refresh_all()
 		return
@@ -298,8 +303,6 @@ func _on_equipment_slot_pressed(index: int, button: MouseButton) -> void:
 	# На курсоре предмет: пробуем надеть (всегда 1 единица —
 	# оружие и броня занимают слот целиком).
 	if not system.can_accept_item(slot_type, carried.item_id):
-		# Двуручное оружие нельзя держать во вторичной руке:
-		# разрешаем хотя бы выбросить/положить обратно обменом.
 		_refresh_all()
 		return
 	var putting := ItemStack.new()
@@ -314,10 +317,22 @@ func _on_equipment_slot_pressed(index: int, button: MouseButton) -> void:
 		else:
 			# На курсоре уже есть предмет — вытесненную вещь
 			# кладём в инвентарь, иначе она упадёт на землю.
-			var accepted: int = inventory.add_item(displaced.item_id, displaced.amount)
-			if accepted < displaced.amount:
-				_spawn_dropped(displaced.item_id, displaced.amount - accepted)
+			_store_or_drop(displaced)
+
+	# Двуручное оружие освободило руку: щит или факел возвращаем игроку.
+	for ejected: Variant in system.drain_ejections():
+		var ejected_stack := ejected as ItemStack
+		if ejected_stack != null and not ejected_stack.is_empty():
+			_store_or_drop(ejected_stack)
+
 	_refresh_all()
+
+
+## Кладёт предмет в инвентарь; если места нет — роняет под ноги.
+func _store_or_drop(stack: ItemStack) -> void:
+	var accepted: int = inventory.add_item(stack.item_id, stack.amount)
+	if accepted < stack.amount:
+		_spawn_dropped(stack.item_id, stack.amount - accepted)
 
 func _on_craft_hover(index: int, entered: bool) -> void:
 	hovered_craft_slot = index if entered else (-1 if hovered_craft_slot == index else hovered_craft_slot)
@@ -366,6 +381,7 @@ func _quick_equip_from_inventory(index: int) -> bool:
 			continue
 		if system.is_slot_empty(slot_type):
 			if system.equip_from_inventory(inventory, index, slot_type):
+				_return_ejected(system)
 				_refresh_all()
 				return true
 			return false
@@ -376,8 +392,18 @@ func _quick_equip_from_inventory(index: int) -> bool:
 		return false
 	if not system.equip_from_inventory(inventory, index, fallback_slot):
 		return false
+	_return_ejected(system)
 	_refresh_all()
 	return true
+
+
+## Возвращает предметы, вытесненные из дополнительных слотов
+## (двуручное оружие заняло руку со щитом или факелом).
+func _return_ejected(system: EquipmentSystem) -> void:
+	for ejected: Variant in system.drain_ejections():
+		var ejected_stack := ejected as ItemStack
+		if ejected_stack != null and not ejected_stack.is_empty():
+			_store_or_drop(ejected_stack)
 
 func _on_craft_slot_pressed(index: int, button: MouseButton) -> void:
 	var target := craft_slots[index]
@@ -460,7 +486,7 @@ func _validate_crafting_setup() -> void:
 
 
 func _is_valid_crafting_recipe(recipe: CraftingRecipe) -> bool:
-	if recipe == null or recipe.pattern.size() != 9:
+	if recipe == null or recipe.pattern_side() != 3:
 		return false
 	if recipe.output_item_id == &"" or recipe.output_amount <= 0:
 		return false
@@ -476,7 +502,7 @@ func _get_matching_recipe() -> CraftingRecipe:
 	for recipe: CraftingRecipe in crafting_recipes:
 		if not _is_valid_crafting_recipe(recipe):
 			continue
-		if not recipe.matches(craft_slots):
+		if not recipe.fits(craft_slots):
 			continue
 
 		var item: ItemData = ItemRegistry.get_item(recipe.output_item_id)
@@ -537,14 +563,28 @@ func _on_result_pressed(_index: int, button: MouseButton) -> void:
 	if carried_amount + result_amount > item.max_stack:
 		return
 
-	# Все проверки закончены: расходуем по одной единице
-	# из каждой непустой ячейки рисунка рецепта.
-	for i in range(recipe.pattern.size()):
-		if recipe.pattern[i] == &"":
-			continue
-		var stack: ItemStack = craft_slots[i]
-		stack.amount -= 1
-		_clear_if_empty(stack)
+	# Все проверки закончены: расходуем ресурсы.
+	if recipe.is_shapeless:
+		var required: Dictionary = recipe.required_amounts()
+		for ingredient_id: StringName in required.keys():
+			var remaining: int = int(required[ingredient_id])
+			for stack: ItemStack in craft_slots:
+				if remaining <= 0:
+					break
+				if stack.is_empty() or stack.item_id != ingredient_id:
+					continue
+				var taken: int = mini(remaining, stack.amount)
+				stack.amount -= taken
+				remaining -= taken
+				_clear_if_empty(stack)
+	else:
+		# По одной единице из каждой непустой ячейки рисунка рецепта.
+		for i in range(recipe.pattern.size()):
+			if recipe.pattern[i] == &"":
+				continue
+			var stack: ItemStack = craft_slots[i]
+			stack.amount -= 1
+			_clear_if_empty(stack)
 
 	carried.item_id = result_id
 	carried.amount = carried_amount + result_amount

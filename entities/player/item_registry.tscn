@@ -15,6 +15,21 @@
 [ext_resource type="Resource" path="res://data/items/cooked_meat_item.tres" id="12_food"]
 [ext_resource type="Resource" path="res://data/items/coal_item.tres" id="13_food"]
 
+[ext_resource type="Resource" path="res://data/items/workbench_item.tres" id="14_workbench"]
+[ext_resource type="Resource" path="res://data/items/iron_sword_item.tres" id="15_gear"]
+[ext_resource type="Resource" path="res://data/items/iron_pickaxe_item.tres" id="16_gear"]
+[ext_resource type="Resource" path="res://data/items/iron_chestplate_item.tres" id="17_gear"]
+
+[ext_resource type="Resource" path="res://data/items/bone_item.tres" id="18_bone"]
+[ext_resource type="Resource" path="res://data/items/torch_item.tres" id="19_gear"]
+[ext_resource type="Resource" path="res://data/items/wood_club_item.tres" id="20_gear"]
+[ext_resource type="Resource" path="res://data/items/bone_pickaxe_item.tres" id="21_gear"]
+[ext_resource type="Resource" path="res://data/items/wood_shield_item.tres" id="22_gear"]
+[ext_resource type="Resource" path="res://data/items/cloth_hat_item.tres" id="23_gear"]
+[ext_resource type="Resource" path="res://data/items/cloth_shirt_item.tres" id="24_gear"]
+[ext_resource type="Resource" path="res://data/items/cloth_pants_item.tres" id="25_gear"]
+[ext_resource type="Resource" path="res://data/items/bone_greatclub_item.tres" id="26_gear"]
+
 [node name="ItemRegistry" type="Node2D" unique_id=1258065676]
 script = ExtResource("1_588pl")
-items = Array[ExtResource("2_e1jus")]([ExtResource("3_m6mr2"), ExtResource("4_3g7rt"), ExtResource("5_vwxsl"), ExtResource("6_43udr"), ExtResource("7_avkaj"), ExtResource("8_wtww3"), ExtResource("9_aasaq"), ExtResource("10_rlflg"), ExtResource("11_food"), ExtResource("12_food"), ExtResource("13_food")])
+items = Array[ExtResource("2_e1jus")]([ExtResource("3_m6mr2"), ExtResource("4_3g7rt"), ExtResource("5_vwxsl"), ExtResource("6_43udr"), ExtResource("7_avkaj"), ExtResource("8_wtww3"), ExtResource("9_aasaq"), ExtResource("10_rlflg"), ExtResource("11_food"), ExtResource("12_food"), ExtResource("13_food"), ExtResource("14_workbench"), ExtResource("15_gear"), ExtResource("16_gear"), ExtResource("17_gear"), ExtResource("18_bone"), ExtResource("19_gear"), ExtResource("20_gear"), ExtResource("21_gear"), ExtResource("22_gear"), ExtResource("23_gear"), ExtResource("24_gear"), ExtResource("25_gear"), ExtResource("26_gear")])

@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="EquipmentComponent" format=3]
 
 [ext_resource type="Script" path="res://scripts/equipment_component.gd" id="1_ec"]
+[ext_resource type="Texture2D" path="res://assets/temp/iron_chestplate_temp.svg" id="2_temp"]
 
 [resource]
 script = ExtResource("1_ec")
@@ -12,6 +13,7 @@ unit_weight_kg = 8.0
 max_stack = 1
 usable_in_crafting = true
 can_be_dropped = true
+icon = ExtResource("2_temp")
 slot = 2
 armor = 6
 attack_damage = 0

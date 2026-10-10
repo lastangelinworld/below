@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EquipmentComponent" format=3]
+
+[ext_resource type="Script" path="res://scripts/equipment_component.gd" id="1_ec"]
+[ext_resource type="Texture2D" path="res://assets/temp/bone_pickaxe_temp.svg" id="2_temp"]
+
+[resource]
+script = ExtResource("1_ec")
+item_id = &"bone_pickaxe"
+display_name = "Костяная кирка"
+name_few = "костяные кирки"
+name_many = "костяных кирок"
+unit_weight_kg = 2.0
+max_stack = 1
+icon = ExtResource("2_temp")
+slot = 9
+armor = 0
+attack_damage = 2
+attack_speed_multiplier = 1.1
+attack_stamina_cost_modifier = -0.5
+stamina_bonus = 0.0
+max_health_bonus = 0
+is_dual_hand = false

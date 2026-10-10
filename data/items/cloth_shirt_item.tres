@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EquipmentComponent" format=3]
+
+[ext_resource type="Script" path="res://scripts/equipment_component.gd" id="1_ec"]
+[ext_resource type="Texture2D" path="res://assets/temp/cloth_shirt_temp.svg" id="2_temp"]
+
+[resource]
+script = ExtResource("1_ec")
+item_id = &"cloth_shirt"
+display_name = "Тканевая рубашка"
+name_few = "тканевые рубашки"
+name_many = "тканевых рубашек"
+unit_weight_kg = 1.0
+max_stack = 1
+icon = ExtResource("2_temp")
+slot = 2
+armor = 2
+attack_damage = 0
+attack_speed_multiplier = 1.0
+attack_stamina_cost_modifier = 0.0
+stamina_bonus = 0.0
+max_health_bonus = 4
+is_dual_hand = false

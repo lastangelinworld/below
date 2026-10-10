@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="CraftingRecipe" format=3]
+
+[ext_resource type="Script" uid="uid://dmwkhfh53qwo0" path="res://scripts/crafting_recipe.gd" id="1_recipe"]
+
+[resource]
+script = ExtResource("1_recipe")
+recipe_id = &"torch"
+pattern = Array[StringName]([&"", &"fiber", &"", &"", &"plank_scraps", &"", &"", &"", &""])
+output_item_id = &"torch"
+output_amount = 2

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EquipmentComponent" format=3]
+
+[ext_resource type="Script" path="res://scripts/equipment_component.gd" id="1_ec"]
+[ext_resource type="Texture2D" path="res://assets/temp/cloth_hat_temp.svg" id="2_temp"]
+
+[resource]
+script = ExtResource("1_ec")
+item_id = &"cloth_hat"
+display_name = "Тканевая шапочка"
+name_few = "тканевые шапочки"
+name_many = "тканевых шапочек"
+unit_weight_kg = 0.5
+max_stack = 1
+icon = ExtResource("2_temp")
+slot = 1
+armor = 1
+attack_damage = 0
+attack_speed_multiplier = 1.0
+attack_stamina_cost_modifier = 0.0
+stamina_bonus = 0.0
+max_health_bonus = 2
+is_dual_hand = false

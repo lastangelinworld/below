@@ -15,6 +15,9 @@ const PREVIEW_BASE_TEXTURE: Texture2D = preload(
 ## Назначь сюда chest_container.tscn через Inspector.
 @export var chest_scene: PackedScene
 
+## Назначь сюда workbench.tscn через Inspector.
+@export var workbench_scene: PackedScene
+
 ## Максимальная дальность установки от ног персонажа.
 @export var maximum_distance: float = 96.0
 
@@ -123,7 +126,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	var item_id: StringName = stack.item_id
 
-	if item_id != &"campfire" and item_id != &"chest":
+	if not _is_placeable_item(item_id):
 		return
 
 	# Выбран устанавливаемый предмет.
@@ -176,6 +179,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if item_id == &"chest":
 		structure.add_to_group("chest")
+	elif item_id == &"workbench":
+		structure.add_to_group("workbench")
 	else:
 		structure.add_to_group("campfire")
 
@@ -226,10 +231,19 @@ func _get_selected_placeable_id(
 
 	var item_id: StringName = stack.item_id
 
-	if item_id == &"campfire" or item_id == &"chest":
-		return item_id
+	if not _is_placeable_item(item_id):
+		return &""
 
-	return &""
+	return item_id
+
+
+## Список предметов, которые можно установить в мире.
+func _is_placeable_item(item_id: StringName) -> bool:
+	return (
+		item_id == &"campfire"
+		or item_id == &"chest"
+		or item_id == &"workbench"
+	)
 
 
 func _get_scene_for_item(
@@ -240,6 +254,8 @@ func _get_scene_for_item(
 			return CAMPFIRE_SCENE
 		&"chest":
 			return chest_scene
+		&"workbench":
+			return workbench_scene
 
 	return null
 
@@ -269,15 +285,15 @@ func _get_structure_position(
 ) -> Vector2:
 	var center: Vector2 = _terrain.get_cell_global_center(cell)
 
-	if item_id == &"chest":
+	if item_id == &"chest" or item_id == &"workbench":
 		var below_center: Vector2 = (
 			_terrain.get_cell_global_center(
 				cell + Vector2i(0, 1)
 			)
 		)
 
-		# Для текущей сцены сундука корень — нижняя точка.
-		# Размещаем его на границе с блоком-основанием.
+		# У сундука и верстака корень — нижняя точка.
+		# Размещаем их на границе с блоком-основанием.
 		return center + (below_center - center) * 0.5
 
 	# Положение костра сохраняем прежним.
@@ -333,12 +349,14 @@ func _is_cell_valid_for_placement(
 func _is_structure(node: Node) -> bool:
 	return (
 		node is ChestContainer
+		or node is Workbench
 		or node is Campfire
 		or node.is_in_group("placeable_structure")
 		or node.is_in_group("storage_chest")
 		or node.is_in_group("campfire_interactable")
 		or node.is_in_group("campfire")
 		or node.is_in_group("chest")
+		or node.is_in_group("workbench")
 		or node.is_in_group("building")
 	)
 
@@ -388,10 +406,12 @@ func _has_structure_at_cell(cell: Vector2i) -> bool:
 
 		if (
 			node is ChestContainer
+			or node is Workbench
 			or node.is_in_group("storage_chest")
 			or node.is_in_group("chest")
+			or node.is_in_group("workbench")
 		):
-			# Корень текущей сцены сундука расположен снизу.
+			# Корень сцены сундука и верстака расположен снизу.
 			position_to_check -= cell_down * 0.5
 
 		var occupied_cell: Vector2i = (
@@ -508,14 +528,20 @@ func _ensure_preview(item_id: StringName) -> bool:
 		base.scale = Vector2(0.5, 0.5)
 		_preview.add_child(base)
 
-	elif item_id == &"chest":
-		if chest_scene == null:
+	elif item_id == &"chest" or item_id == &"workbench":
+		var structure_scene: PackedScene = (
+			chest_scene
+			if item_id == &"chest"
+			else workbench_scene
+		)
+
+		if structure_scene == null:
 			_clear_preview()
 			return false
 
-		# Не добавляем исходный сундук в дерево:
+		# Не добавляем исходное строение в дерево:
 		# его _ready(), хранение и физика не запускаются.
-		var source: Node = chest_scene.instantiate()
+		var source: Node = structure_scene.instantiate()
 
 		if source is Node2D:
 			_preview.scale = (source as Node2D).scale
@@ -540,7 +566,7 @@ func _ensure_preview(item_id: StringName) -> bool:
 
 		if _preview.get_child_count() == 0:
 			push_warning(
-				"CampfirePlacement: у сундука нет узлов изображения."
+				"CampfirePlacement: у строения нет узлов изображения."
 			)
 			_clear_preview()
 			return false

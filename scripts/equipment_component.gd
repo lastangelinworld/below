@@ -34,18 +34,42 @@ var stamina_bonus: float = 0.0
 @export_range(-100, 1000, 1)
 var max_health_bonus: int = 0
 
-## Двуручное оружие — не помещается во вторичный слот.
+## Двуручное оружие — не помещается во вторичный слот отдельно,
+## но занимает его вместе с основным (щит или факел тогда вытесняются).
 @export var is_dual_hand: bool = false
+
+## Дополнительные слоты, которые предмет занимает вместе с основным.
+## Например двуручная дубина: slot = MAINHAND, extra = [OFFHAND].
+@export var extra_slots: Array[EquipmentSlot.Type] = []
 
 ## Отображаемая текстура на слоте экипировки.
 @export var equipment_icon: Texture2D
 
 
-## Проверяет, что предмет можно надеть в заданный слот.
+## Основные слоты предмета без дополнительных.
+func get_primary_slot() -> EquipmentSlot.Type:
+	return slot
+
+
+## Предмет физически occupies этот слот — основным или дополнительным
+## (двуручное оружие занимает и вторичную руку).
 func can_equip_to(slot_to_check: EquipmentSlot.Type) -> bool:
-	if slot == EquipmentSlot.Type.NONE:
+	if slot_to_check == EquipmentSlot.Type.NONE:
 		return false
-	return slot == slot_to_check
+	if slot == slot_to_check:
+		return true
+	for extra: EquipmentSlot.Type in extra_slots:
+		if extra == slot_to_check:
+			return true
+	return false
+
+
+## Можно ли положить предмет в слот самостоятельно.
+## В дополнительный слот двуручного предмета предмет кладётся
+## только вместе с основным, поэтому здесь разрешён лишь основной слот.
+func can_place_in(slot_to_check: EquipmentSlot.Type) -> bool:
+	return slot != EquipmentSlot.Type.NONE and slot == slot_to_check
+
 
 
 ## Возвращает список всех числовых бонусов предмета
