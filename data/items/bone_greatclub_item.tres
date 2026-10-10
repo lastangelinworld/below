@@ -1,23 +1,20 @@
-[gd_resource type="Resource" script_class="EquipmentComponent" format=3]
+[gd_resource type="Resource" script_class="EquipmentComponent" format=3 uid="uid://7idxxya5m05n"]
 
-[ext_resource type="Script" path="res://scripts/equipment_component.gd" id="1_ec"]
-[ext_resource type="Texture2D" path="res://assets/temp/bone_greatclub_temp.svg" id="2_temp"]
+[ext_resource type="Script" uid="uid://c0mgiuti6ld4i" path="res://scripts/equipment_component.gd" id="1_ec"]
+[ext_resource type="Texture2D" uid="uid://c7d6af818hl7t" path="res://assets/temp/bone_greatclub_temp.svg" id="2_temp"]
 
 [resource]
 script = ExtResource("1_ec")
-item_id = &"bone_greatclub"
-display_name = "Двуручная дубина из костей"
-name_few = "двуручные дубины из костей"
-name_many = "двуручных дубин из костей"
-unit_weight_kg = 6.0
-max_stack = 1
-icon = ExtResource("2_temp")
 slot = 9
-armor = 0
 attack_damage = 6
 attack_speed_multiplier = 0.7
 attack_stamina_cost_modifier = 1.5
-stamina_bonus = 0.0
-max_health_bonus = 0
 is_dual_hand = true
 extra_slots = Array[int]([10])
+item_id = &"bone_greatclub"
+display_name = "Двуручная дубина из костей"
+unit_weight_kg = 6.0
+max_stack = 1
+icon = ExtResource("2_temp")
+name_few = "двуручные дубины из костей"
+name_many = "двуручных дубин из костей"

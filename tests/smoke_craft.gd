@@ -28,8 +28,8 @@ func _test_recipes() -> int:
 		["res://data/recipes/torch.tres", 3, "torch", 2],
 		["res://data/recipes/wood_club.tres", 3, "wood_club", 1],
 		["res://data/recipes/bone_pickaxe.tres", 3, "bone_pickaxe", 1],
-		["res://data/recipes/wood_shield.tres", 5, "wood_shield", 1],
-		["res://data/recipes/cloth_hat.tres", 5, "cloth_hat", 1],
+		["res://data/recipes/wood_shield.tres", 3, "wood_shield", 1],
+		["res://data/recipes/cloth_hat.tres", 3, "cloth_hat", 1],
 		["res://data/recipes/cloth_shirt.tres", 5, "cloth_shirt", 1],
 		["res://data/recipes/cloth_pants.tres", 5, "cloth_pants", 1],
 		["res://data/recipes/bone_greatclub.tres", 5, "bone_greatclub", 1],
@@ -86,13 +86,17 @@ func _test_workbench() -> int:
 		load("res://data/recipes/workbench.tres"),
 	]
 
-	# 1. Щит: 9 обломков в одном стаке, shapeless.
-	bench.put_items(0, &"plank_scraps", 9)
+	# 1. Щит: квадрат 3×3 из девяти обломков со сдвигом (1,1).
+	for cell: int in [6, 7, 8, 11, 12, 13, 16, 17, 18]:
+		bench.put_items(cell, &"plank_scraps", 1)
 	var found: Dictionary = bench.find_recipe_with_offset(recipes)
 	if found.get("recipe") == null or found["recipe"].recipe_id != &"wood_shield":
 		print("SHIELD NOT MATCHED: ", found)
 		problems += 1
 	else:
+		if found["offset"] != Vector2i(1, 1):
+			print("SHIELD OFFSET WRONG: ", found["offset"])
+			problems += 1
 		var made: Dictionary = bench.craft(found["recipe"], found["offset"])
 		if made.get("item_id") != &"wood_shield":
 			print("SHIELD CRAFT FAILED: ", made)
@@ -107,15 +111,15 @@ func _test_workbench() -> int:
 			print("SHIELD AMOUNT WRONG: ", made)
 			problems += 1
 
-	# 2. Костяная кирка 3×3 сдвигается в сетку 5×5 (рисунок в правом нижнем углу).
+	# 2. Костяная кирка 3×3 (кости сверху, изогнутая рукоять) со сдвигом (1,1).
 	for i: int in Workbench.GRID_SIZE:
 		bench.take_items(i, -1)
-	bench.put_items(12, &"bone", 1)
-	bench.put_items(13, &"bone", 1)
-	bench.put_items(14, &"bone", 1)
+	bench.put_items(6, &"bone", 1)
+	bench.put_items(7, &"bone", 1)
+	bench.put_items(8, &"bone", 1)
+	bench.put_items(12, &"plank_scraps", 1)
 	bench.put_items(17, &"plank_scraps", 1)
 	bench.put_items(18, &"plank_scraps", 1)
-	bench.put_items(19, &"plank_scraps", 1)
 	found = bench.find_recipe_with_offset(recipes)
 	if found.get("recipe") == null or found["recipe"].recipe_id != &"bone_pickaxe":
 		print("PICKAXE (OFFSET 3x3) NOT MATCHED: ", found)
@@ -132,24 +136,26 @@ func _test_workbench() -> int:
 			print("PICKAXE LEFTOVER: ", left)
 			problems += 1
 
-	# 3. Двуручная дубина: 20 костей в одном стаке.
+	# 3. Двуручная дубина: квадрат 4×5 из двадцати костей.
 	for i: int in Workbench.GRID_SIZE:
 		bench.take_items(i, -1)
-	bench.put_items(3, &"bone", 20)
+	for cell: int in range(20):
+		bench.put_items(cell, &"bone", 1)
 	found = bench.find_recipe_with_offset(recipes)
 	if found.get("recipe") == null or found["recipe"].recipe_id != &"bone_greatclub":
 		print("GREATCLUB NOT MATCHED: ", found)
 		problems += 1
 
-	# 4. Нехватка ресурсов — рецепт не срабатывает и ничего не списывается.
+	# 4. Лишний ресурс в сетке — рецепт не срабатывает и ничего не списывается.
 	for i: int in Workbench.GRID_SIZE:
 		bench.take_items(i, -1)
-	bench.put_items(0, &"fiber", 4)
+	bench.put_items(0, &"fiber", 3)
+	bench.put_items(24, &"bone", 1)
 	found = bench.find_recipe_with_offset(recipes)
 	if not found.is_empty():
-		print("CLOTH HAT MATCHED WITH ONLY 4 FIBER: ", found)
+		print("HAT MATCHED WITH EXTRA BONE IN GRID: ", found)
 		problems += 1
-	if bench.grid_amounts[0] != 4:
+	if bench.grid_amounts[0] != 3 or bench.grid_amounts[24] != 1:
 		print("GRID MUTATED ON FAILED MATCH")
 		problems += 1
 

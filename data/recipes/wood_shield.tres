@@ -6,12 +6,9 @@
 script = ExtResource("1_recipe")
 recipe_id = &"wood_shield"
 pattern = Array[StringName]([
-	&"plank_scraps", &"plank_scraps", &"plank_scraps", &"plank_scraps", &"plank_scraps",
-	&"plank_scraps", &"plank_scraps", &"plank_scraps", &"plank_scraps", &"",
-	&"", &"", &"", &"", &"",
-	&"", &"", &"", &"", &"",
-	&"", &"", &"", &"", &""
+	&"plank_scraps", &"plank_scraps", &"plank_scraps",
+	&"plank_scraps", &"plank_scraps", &"plank_scraps",
+	&"plank_scraps", &"plank_scraps", &"plank_scraps"
 ])
 output_item_id = &"wood_shield"
 output_amount = 1
-is_shapeless = true

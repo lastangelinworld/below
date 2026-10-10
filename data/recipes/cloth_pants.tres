@@ -7,11 +7,10 @@ script = ExtResource("1_recipe")
 recipe_id = &"cloth_pants"
 pattern = Array[StringName]([
 	&"fiber", &"fiber", &"fiber", &"fiber", &"fiber",
-	&"fiber", &"fiber", &"fiber", &"fiber", &"fiber",
-	&"", &"", &"", &"", &"",
+	&"", &"fiber", &"fiber", &"fiber", &"",
+	&"", &"fiber", &"", &"fiber", &"",
 	&"", &"", &"", &"", &"",
 	&"", &"", &"", &"", &""
 ])
 output_item_id = &"cloth_pants"
 output_amount = 1
-is_shapeless = true

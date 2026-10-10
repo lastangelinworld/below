@@ -19,7 +19,7 @@
 [ext_resource type="Script" uid="uid://bjwo06xayys40" path="res://scripts/gameplay_interactions.gd" id="15_gameplayinteractions"]
 [ext_resource type="Script" uid="uid://bsvf2xq4mo7of" path="res://scripts/status_bar_numbers.gd" id="16_statusbarnumbers"]
 [ext_resource type="PackedScene" uid="uid://b3vh1hsnj2exj" path="res://data/recipes/chest_container.tscn" id="19_jvuuw"]
-[ext_resource type="PackedScene" uid="uid://b5v7rk2h3x9q1" path="res://data/world/workbench.tscn" id="20_workbench"]
+[ext_resource type="PackedScene" uid="uid://b5v7rk2h3yaq1" path="res://data/world/workbench.tscn" id="20_workbench"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_s7l2s"]
 texture = ExtResource("1_bbi8e")
@@ -158,7 +158,7 @@ script = ExtResource("16_statusbarnumbers")
 
 [node name="ChestContainer" parent="." unique_id=1066114201 instance=ExtResource("19_jvuuw")]
 position = Vector2(-47, 161)
-initial_item_ids = Array[StringName]([&"plank_scraps", &"coal", &"flint", &"raw_meat", &"cooked_meat"])
-initial_item_amounts = Array[int]([20, 3, 10, 12, 6])
+initial_item_ids = Array[StringName]([&"plank_scraps", &"coal", &"flint", &"raw_meat", &"bone", &"fiber"])
+initial_item_amounts = Array[int]([64, 64, 64, 12, 64, 64])
 
 [editable path="Player"]

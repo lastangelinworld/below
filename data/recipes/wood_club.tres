@@ -5,6 +5,10 @@
 [resource]
 script = ExtResource("1_recipe")
 recipe_id = &"wood_club"
-pattern = Array[StringName]([&"", &"", &"", &"plank_scraps", &"plank_scraps", &"plank_scraps", &"", &"", &""])
+pattern = Array[StringName]([
+	&"", &"plank_scraps", &"",
+	&"", &"plank_scraps", &"",
+	&"", &"plank_scraps", &""
+])
 output_item_id = &"wood_club"
 output_amount = 1
