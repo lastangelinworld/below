@@ -83,10 +83,11 @@ const ARCHER_RANGE: float = 170.0
 const ARCHER_KEEP_DISTANCE: float = 90.0
 const ARCHER_COOLDOWN: float = 2.2
 
-## Размеры полоски здоровья над головой.
-const HEALTH_BAR_WIDTH: float = 18.0
+## Размеры полоски здоровья над головой. Рост скелета ~60 px
+## (две клетки, как игрок), поэтому полоска висит над черепом.
+const HEALTH_BAR_WIDTH: float = 26.0
 const HEALTH_BAR_HEIGHT: float = 3.0
-const HEALTH_BAR_TOP: float = -41.0
+const HEALTH_BAR_TOP: float = -68.0
 
 ## Фазы атаки (Фаза 7): телеграф → удар → восстановление.
 ## DRAW — отдельная фаза лучника: видимое натяжение тетивы
@@ -381,7 +382,8 @@ func _shoot_arrow() -> void:
 		return
 
 	world.add_child(projectile)
-	var start: Vector2 = global_position + Vector2(0.0, -12.0)
+	# Выстрел из уровня груди лучника (рост ~60 px, грудь ~ -34).
+	var start: Vector2 = global_position + Vector2(0.0, -34.0)
 	var aim: Vector2 = (_player.global_position + Vector2(0.0, -8.0) - start).normalized()
 	projectile.call("setup", start, aim, arrow_damage)
 
