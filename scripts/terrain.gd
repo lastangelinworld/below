@@ -490,6 +490,15 @@ func request_damage_block(
 
 	remaining_health -= damage
 
+	# Цифра урона по блоку — показываем в момент удара, чтобы кирка
+	# и стрела давали одинаковый фидбек.
+	DamageNumber.show_at(
+		get_tree().get_current_scene(),
+		block_global_center,
+		damage,
+		Color(0.98, 0.86, 0.5)
+	)
+
 	if remaining_health > 0:
 		_remaining_health_by_cell[
 			cell_coordinates

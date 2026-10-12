@@ -21,4 +21,7 @@ attack_speed_multiplier = 1.1
 attack_stamina_cost_modifier = 0.5
 stamina_bonus = 0.0
 max_health_bonus = 0
+poise_damage = 8.0
+weapon_skill = 0
+trains_skill = true
 is_dual_hand = false

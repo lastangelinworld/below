@@ -86,6 +86,9 @@ mining_reach_in_tiles = 1.0
 [node name="CollisionShape2D" parent="Player" index="0" unique_id=1455542820]
 position = Vector2(3, -7)
 
+[node name="HurtboxShape" parent="Player/Hurtbox" parent_id_path=PackedInt32Array(1776581139, 349329389) index="0" unique_id=1934984474]
+position = Vector2(3, -7)
+
 [node name="BackHip" parent="Player/Visuals" parent_id_path=PackedInt32Array(1776581139, 304073171) index="1" unique_id=1519836747]
 position = Vector2(69.99999, 0)
 

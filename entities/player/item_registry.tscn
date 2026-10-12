@@ -30,6 +30,8 @@
 [ext_resource type="Resource" path="res://data/items/cloth_pants_item.tres" id="25_gear"]
 [ext_resource type="Resource" path="res://data/items/bone_greatclub_item.tres" id="26_gear"]
 
+[ext_resource type="Resource" path="res://data/items/spawner_item.tres" id="27_spawner"]
+
 [node name="ItemRegistry" type="Node2D" unique_id=1258065676]
 script = ExtResource("1_588pl")
-items = Array[ExtResource("2_e1jus")]([ExtResource("3_m6mr2"), ExtResource("4_3g7rt"), ExtResource("5_vwxsl"), ExtResource("6_43udr"), ExtResource("7_avkaj"), ExtResource("8_wtww3"), ExtResource("9_aasaq"), ExtResource("10_rlflg"), ExtResource("11_food"), ExtResource("12_food"), ExtResource("13_food"), ExtResource("14_workbench"), ExtResource("15_gear"), ExtResource("16_gear"), ExtResource("17_gear"), ExtResource("18_bone"), ExtResource("19_gear"), ExtResource("20_gear"), ExtResource("21_gear"), ExtResource("22_gear"), ExtResource("23_gear"), ExtResource("24_gear"), ExtResource("25_gear"), ExtResource("26_gear")])
+items = Array[ExtResource("2_e1jus")]([ExtResource("3_m6mr2"), ExtResource("4_3g7rt"), ExtResource("5_vwxsl"), ExtResource("6_43udr"), ExtResource("7_avkaj"), ExtResource("8_wtww3"), ExtResource("9_aasaq"), ExtResource("10_rlflg"), ExtResource("11_food"), ExtResource("12_food"), ExtResource("13_food"), ExtResource("14_workbench"), ExtResource("15_gear"), ExtResource("16_gear"), ExtResource("17_gear"), ExtResource("18_bone"), ExtResource("19_gear"), ExtResource("20_gear"), ExtResource("21_gear"), ExtResource("22_gear"), ExtResource("23_gear"), ExtResource("24_gear"), ExtResource("25_gear"), ExtResource("26_gear"), ExtResource("27_spawner")])

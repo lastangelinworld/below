@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://b5v7rk2h3x9q1"]
+[gd_scene load_steps=14 format=3 uid="uid://b5v7rk2h3x9q1"]
 
 [ext_resource type="Script" path="res://scripts/workbench.gd" id="1_workbench"]
 [ext_resource type="Script" uid="uid://dmwkhfh53qwo0" path="res://scripts/crafting_recipe.gd" id="1_recipe"]
@@ -11,6 +11,7 @@
 [ext_resource type="Resource" path="res://data/recipes/iron_pickaxe_recipe.tres" id="2_r7"]
 [ext_resource type="Resource" path="res://data/recipes/iron_chestplate_recipe.tres" id="2_r8"]
 [ext_resource type="Resource" path="res://data/recipes/bone_pickaxe.tres" id="2_r9"]
+[ext_resource type="Resource" path="res://data/recipes/spawner.tres" id="2_r10"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_workbench"]
 size = Vector2(32, 20)
@@ -26,7 +27,8 @@ recipes = Array[ExtResource("1_recipe")]([
 	ExtResource("2_r6"),
 	ExtResource("2_r7"),
 	ExtResource("2_r8"),
-	ExtResource("2_r9")
+	ExtResource("2_r9"),
+	ExtResource("2_r10")
 ])
 
 [node name="Placeholder" type="Node2D" parent="."]

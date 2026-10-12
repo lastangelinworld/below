@@ -59,6 +59,9 @@ func _ready() -> void:
 	# HUD обязан работать на паузе, иначе кнопка возрождения не нажмётся.
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
+	# Группа нужна player.gd, чтобы сообщить о новом уровне навыка.
+	add_to_group("hud")
+
 	_configure_interface()
 	_create_pickup_messages()
 	_create_death_screen()
@@ -99,6 +102,61 @@ func _ready() -> void:
 
 	_sync_from_player(
 		player
+	)
+
+	_connect_skill_notifications(
+		player
+	)
+
+
+## Подписка на рост навыков: HUD показывает «Мечи: уровень 3».
+func _connect_skill_notifications(
+	player: Node
+) -> void:
+	var skills_component: Node = player.get("skills")
+	if skills_component == null:
+		return
+
+	if not skills_component.has_signal("level_changed"):
+		return
+
+	skills_component.level_changed.connect(
+		_on_skill_level_changed
+	)
+
+
+func _on_skill_level_changed(
+	skill: int,
+	new_level: int
+) -> void:
+	show_skill_level_up(skill, new_level)
+
+
+## Показывает всплывающую строку о новом уровне навыка.
+func show_skill_level_up(
+	skill: int,
+	new_level: int
+) -> void:
+	var skill_name: String = SkillsComponent.SKILL_NAMES.get(
+		skill,
+		"Навык"
+	)
+
+	_show_pickup_message(
+		"%s: уровень %d" % [skill_name, new_level]
+	)
+
+
+## Подсказка при смене оружия: насколько оно прокачано.
+func show_weapon_skill(
+	skill_name: StringName,
+	level: int
+) -> void:
+	if skill_name == &"":
+		return
+
+	_show_pickup_message(
+		"%s: уровень %d" % [String(skill_name), level]
 	)
 
 

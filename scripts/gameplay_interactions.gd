@@ -201,6 +201,13 @@ func _try_interact() -> void:
 	if bool(player.get("is_dead")):
 		return
 
+	# В приседе взаимодействие недоступно: персонаж сначала
+	# пытается встать. Если кнопка приседа зажата или встать
+	# некуда — окно не откроется.
+	if bool(player.get("is_crouching")):
+		if not bool(player.call("try_stand_up_for_action")):
+			return
+
 	var target: Node2D = _nearest_interactable()
 
 	if target != null:

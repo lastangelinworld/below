@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/equipment_component.gd" id="1_ec"]
 [ext_resource type="Texture2D" path="res://assets/temp/wood_shield_temp.svg" id="2_temp"]
+[ext_resource type="Texture2D" uid="uid://bd2qkfyq3mcu7" path="res://assets/temp/shield_held.svg" id="3_held"]
 
 [resource]
 script = ExtResource("1_ec")
@@ -12,6 +13,7 @@ name_many = "щитов из досок"
 unit_weight_kg = 4.0
 max_stack = 1
 icon = ExtResource("2_temp")
+held_weapon_texture = ExtResource("3_held")
 slot = 10
 armor = 3
 attack_damage = 0

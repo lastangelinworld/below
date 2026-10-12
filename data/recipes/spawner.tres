@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="CraftingRecipe" format=3]
+
+[ext_resource type="Script" uid="uid://dmwkhfh53qwo0" path="res://scripts/crafting_recipe.gd" id="1_recipe"]
+
+[resource]
+script = ExtResource("1_recipe")
+recipe_id = &"spawner"
+pattern = Array[StringName]([&"", &"", &"", &"", &"", &"", &"bone", &"bone", &"bone", &"bone", &"", &"bone", &"bone", &"bone", &"bone", &"", &"bone", &"bone", &"bone", &"bone", &"", &"", &"", &"", &""])
+output_item_id = &"spawner"
+output_amount = 1
+is_shapeless = false

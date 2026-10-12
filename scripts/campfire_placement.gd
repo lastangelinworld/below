@@ -5,6 +5,10 @@ const CAMPFIRE_SCENE: PackedScene = preload(
 	"res://data/world/campfire.tscn"
 )
 
+const SPAWNER_SCENE: PackedScene = preload(
+	"res://data/world/spawner.tscn"
+)
+
 const PREVIEW_BASE_TEXTURE: Texture2D = preload(
 	"res://assets/campfire/0.png"
 )
@@ -110,6 +114,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	if player == null:
 		return
 
+	# В приседе установка недоступна: персонаж сначала пытается
+	# встать. Если кнопка приседа зажата или встать некуда —
+	# нажатие считается обработанным, но блок не ставится.
+	if bool(player.get("is_crouching")):
+		get_viewport().set_input_as_handled()
+		if not bool(player.call("try_stand_up_for_action")):
+			return
+
 	var inventory: Variant = player.get("inventory")
 
 	if inventory == null:
@@ -181,6 +193,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		structure.add_to_group("chest")
 	elif item_id == &"workbench":
 		structure.add_to_group("workbench")
+	elif item_id == &"spawner":
+		structure.add_to_group("spawner")
 	else:
 		structure.add_to_group("campfire")
 
@@ -243,6 +257,7 @@ func _is_placeable_item(item_id: StringName) -> bool:
 		item_id == &"campfire"
 		or item_id == &"chest"
 		or item_id == &"workbench"
+		or item_id == &"spawner"
 	)
 
 
@@ -256,6 +271,8 @@ func _get_scene_for_item(
 			return chest_scene
 		&"workbench":
 			return workbench_scene
+		&"spawner":
+			return SPAWNER_SCENE
 
 	return null
 
@@ -285,14 +302,18 @@ func _get_structure_position(
 ) -> Vector2:
 	var center: Vector2 = _terrain.get_cell_global_center(cell)
 
-	if item_id == &"chest" or item_id == &"workbench":
+	if (
+		item_id == &"chest"
+		or item_id == &"workbench"
+		or item_id == &"spawner"
+	):
 		var below_center: Vector2 = (
 			_terrain.get_cell_global_center(
 				cell + Vector2i(0, 1)
 			)
 		)
 
-		# У сундука и верстака корень — нижняя точка.
+		# У сундука, верстака и постамента корень — нижняя точка.
 		# Размещаем их на границе с блоком-основанием.
 		return center + (below_center - center) * 0.5
 
@@ -351,12 +372,14 @@ func _is_structure(node: Node) -> bool:
 		node is ChestContainer
 		or node is Workbench
 		or node is Campfire
+		or node is SkeletonSpawner
 		or node.is_in_group("placeable_structure")
 		or node.is_in_group("storage_chest")
 		or node.is_in_group("campfire_interactable")
 		or node.is_in_group("campfire")
 		or node.is_in_group("chest")
 		or node.is_in_group("workbench")
+		or node.is_in_group("spawner")
 		or node.is_in_group("building")
 	)
 
@@ -407,11 +430,13 @@ func _has_structure_at_cell(cell: Vector2i) -> bool:
 		if (
 			node is ChestContainer
 			or node is Workbench
+			or node is SkeletonSpawner
 			or node.is_in_group("storage_chest")
 			or node.is_in_group("chest")
 			or node.is_in_group("workbench")
+			or node.is_in_group("spawner")
 		):
-			# Корень сцены сундука и верстака расположен снизу.
+			# Корень сцены сундука, верстака и постамка снизу.
 			position_to_check -= cell_down * 0.5
 
 		var occupied_cell: Vector2i = (
@@ -528,12 +553,19 @@ func _ensure_preview(item_id: StringName) -> bool:
 		base.scale = Vector2(0.5, 0.5)
 		_preview.add_child(base)
 
-	elif item_id == &"chest" or item_id == &"workbench":
-		var structure_scene: PackedScene = (
-			chest_scene
-			if item_id == &"chest"
-			else workbench_scene
-		)
+	elif (
+		item_id == &"chest"
+		or item_id == &"workbench"
+		or item_id == &"spawner"
+	):
+		var structure_scene: PackedScene
+		match item_id:
+			&"chest":
+				structure_scene = chest_scene
+			&"workbench":
+				structure_scene = workbench_scene
+			_:
+				structure_scene = SPAWNER_SCENE
 
 		if structure_scene == null:
 			_clear_preview()

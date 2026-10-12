@@ -1,0 +1,29 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/arrow_projectile.gd" id="1_arrow"]
+
+[sub_resource type="RectangleShape2D" id="arrow_shape"]
+size = Vector2(4, 14)
+
+[node name="ArrowProjectile" type="RigidBody2D"]
+script = ExtResource("1_arrow")
+gravity_scale = 0.0
+continuous_cd = 2
+max_contacts_reported = 4
+contact_monitor = true
+can_sleep = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("arrow_shape")
+
+[node name="Shaft" type="Polygon2D" parent="."]
+color = Color(0.78, 0.72, 0.6, 1)
+polygon = PackedVector2Array(-1.5, -4, 1.5, -4, 1.5, 7, -1.5, 7)
+
+[node name="Tip" type="Polygon2D" parent="."]
+color = Color(0.5, 0.46, 0.4, 1)
+polygon = PackedVector2Array(-2, -4, 2, -4, 0, -9)
+
+[node name="Fletching" type="Polygon2D" parent="."]
+color = Color(0.9, 0.88, 0.82, 1)
+polygon = PackedVector2Array(-2.5, 5, 2.5, 5, 2.5, 8, -2.5, 8)

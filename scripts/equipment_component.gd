@@ -45,8 +45,29 @@ var max_health_bonus: int = 0
 ## Отображаемая текстура на слоте экипировки.
 @export var equipment_icon: Texture2D
 
+## Текстура, которую персонаж держит в руке при экипировке.
+## Если не задана, используется icon из ItemData.
+@export var held_weapon_texture: Texture2D
 
-## Основные слоты предмета без дополнительных.
+## Окно парирования в секундах от начала блока. Если входящая атака
+## попадает в это окно — урон обнуляется, атакующий входит в стаггер.
+@export_range(0.0, 1.0, 0.01)
+var parry_window_sec: float = 0.2
+
+## Базовый поиз-урон за удар этим предметом (до применения в бою).
+## 0 = не задано. Тяжёлое оружие выставляет больше.
+@export_range(0.0, 100.0, 0.5)
+var poise_damage: float = 0.0
+
+## Навык, который тренирует удар этим оружием (Фаза 6).
+@export var weapon_skill: SkillsComponent.Skill = SkillsComponent.Skill.SWORDS
+
+## Приносит ли предмет опыт в навык. false у брони, украшений и щитов:
+## они не «оружие», и махать ими ради прокачки игрок не должен.
+@export var trains_skill: bool = false
+
+
+## Основные слоты предмета без доп. слотов.
 func get_primary_slot() -> EquipmentSlot.Type:
 	return slot
 
@@ -82,6 +103,7 @@ func get_equipment_stats() -> Dictionary:
 		"attack_stamina_cost_modifier": attack_stamina_cost_modifier,
 		"stamina_bonus": stamina_bonus,
 		"max_health_bonus": max_health_bonus,
+		"poise_damage": poise_damage,
 		"is_dual_hand": is_dual_hand,
 		"slot": slot,
 	}

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- Каменный постамент -->
+  <rect x="14" y="30" width="36" height="28" rx="3" fill="#6a6a6a" stroke="#3a3a3a" stroke-width="3"/>
+  <rect x="18" y="34" width="28" height="20" rx="2" fill="#555555" stroke="#444444" stroke-width="1"/>
+  <!-- Череп на постаменте -->
+  <circle cx="32" cy="24" r="10" fill="#e8e0d0" stroke="#999" stroke-width="2"/>
+  <circle cx="28" cy="22" r="2.5" fill="#333"/>
+  <circle cx="36" cy="22" r="2.5" fill="#333"/>
+  <path d="M29 28h6v3h-6z" fill="#555"/>
+  <!-- Кости по бокам -->
+  <line x1="10" y1="18" x2="16" y2="28" stroke="#d4c8b0" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="10" cy="17" r="2.5" fill="#d4c8b0"/>
+  <circle cx="10" cy="19" r="2.5" fill="#d4c8b0"/>
+  <line x1="54" y1="18" x2="48" y2="28" stroke="#d4c8b0" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="54" cy="17" r="2.5" fill="#d4c8b0"/>
+  <circle cx="54" cy="19" r="2.5" fill="#d4c8b0"/>
+</svg>

@@ -32,6 +32,12 @@ const ALL_SLOTS: Array[Type] = [
 ## Слоты, в которые можно положить два одинаковых кольца.
 const RING_SLOTS: Array[Type] = [Type.RING_LEFT, Type.RING_RIGHT]
 
+## Слоты физической брони: только их вес создаёт нагрузку (encumbrance).
+## Оружие, щит и украшения (кольца, ожерелье) ношу носят, но по плану
+## Фазы 5 персонажа не грузят — иначе двуручная дубина сделала бы
+## «тяжёлый класс» недоступным без брони вовсе.
+const ARMOR_SLOTS: Array[Type] = [Type.HEAD, Type.CHEST, Type.LEGS]
+
 
 static func get_display_name(slot: Type) -> String:
 	match slot:

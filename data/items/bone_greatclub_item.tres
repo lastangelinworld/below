@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://c0mgiuti6ld4i" path="res://scripts/equipment_component.gd" id="1_ec"]
 [ext_resource type="Texture2D" uid="uid://c7d6af818hl7t" path="res://assets/temp/bone_greatclub_temp.svg" id="2_temp"]
+[ext_resource type="Texture2D" uid="uid://t1sqr2yhubta" path="res://assets/temp/greatclub_held.svg" id="3_held"]
 
 [resource]
 script = ExtResource("1_ec")
@@ -16,5 +17,15 @@ display_name = "Двуручная дубина из костей"
 unit_weight_kg = 6.0
 max_stack = 1
 icon = ExtResource("2_temp")
+held_weapon_texture = ExtResource("3_held")
 name_few = "двуручные дубины из костей"
 name_many = "двуручных дубин из костей"
+armor = 0
+attack_damage = 6
+attack_speed_multiplier = 0.7
+attack_stamina_cost_modifier = 1.5
+stamina_bonus = 0.0
+max_health_bonus = 0
+poise_damage = 12.0
+weapon_skill = 2
+trains_skill = true

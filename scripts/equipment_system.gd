@@ -29,13 +29,48 @@ const PROPERTY_RULES := {
 		"add": "max_health_bonus",
 		"minimum": 1,
 	},
+	"poise_damage": {
+		"add": "poise_damage",
+		"minimum": 0.0,
+	},
 	# Интервал между ударами короче, если оружие быстрее:
 	# итог = базовый интервал / скорость атаки.
 	"mining_interval": {
 		"multiply": "attack_interval_multiplier",
 		"minimum": 0.05,
 	},
+	# Нагрузка брони замедляет шаг: итог = базовая скорость × множитель
+	# обременения (1.0 без брони, меньше — с тяжёлой).
+	"move_speed": {
+		"multiply": "encumbrance_speed_multiplier",
+		"minimum": 20.0,
+	},
 }
+
+## Свойства игрока, которые EquipmentSystem заполняет вычисленными
+## значениями нагрузки. В отличие от PROPERTY_RULES здесь нет baseline:
+## это не «базовое + бонус», а результат расчёта, который игрок читает
+## напрямую (спринт, ролл, реген стамины).
+const ENCUMBRANCE_PROPERTIES := [
+	"encumbrance",
+	"encumbrance_speed_multiplier",
+	"encumbrance_regen_multiplier",
+	"is_overencumbered",
+]
+
+## Свойство игрока с грузоподъёмностью и экспорт-штрафы обременения.
+## Читаются напрямую: менять их должно снаряжение нельзя.
+const CAPACITY_PROPERTY: String = "equip_load_capacity_kg"
+const SPEED_PENALTY_PROPERTY: String = "encumbrance_speed_penalty"
+const REGEN_PENALTY_PROPERTY: String = "encumbrance_regen_penalty"
+
+## Ниже этих значений штрафы не опускаются: полностью обездвиженный
+## или лишённый стамины персонаж ломает игру, а не наказывает.
+const MINIMUM_SPEED_MULTIPLIER: float = 0.45
+const MINIMUM_REGEN_MULTIPLIER: float = 0.25
+## Значение нагрузки, с которого броня считается «неподъёмной»:
+## остаются только шаг и удар.
+const OVERENCUMBERED_THRESHOLD: float = 1.0
 
 var _slots: Dictionary = {}
 var _baselines: Dictionary = {}
@@ -349,7 +384,13 @@ func _recalculate() -> void:
 		"attack_stamina_cost_modifier": 0.0,
 		"stamina_bonus": 0.0,
 		"max_health_bonus": 0,
+		"poise_damage": 0.0,
 		"dual_hand_equipped": false,
+		"armor_weight_kg": 0.0,
+		"encumbrance": 0.0,
+		"encumbrance_speed_multiplier": 1.0,
+		"encumbrance_regen_multiplier": 1.0,
+		"is_overencumbered": false,
 	}
 
 	for slot: EquipmentSlot.Type in EquipmentSlot.ALL_SLOTS:
@@ -365,6 +406,7 @@ func _recalculate() -> void:
 		_totals["attack_stamina_cost_modifier"] += component.attack_stamina_cost_modifier
 		_totals["stamina_bonus"] += component.stamina_bonus
 		_totals["max_health_bonus"] += component.max_health_bonus
+		_totals["poise_damage"] += component.poise_damage
 		if component.is_dual_hand and slot == EquipmentSlot.Type.MAINHAND:
 			_totals["dual_hand_equipped"] = true
 
@@ -373,13 +415,78 @@ func _recalculate() -> void:
 	var speed_total: float = maxf(float(_totals["attack_speed_multiplier"]), 0.01)
 	_totals["attack_interval_multiplier"] = 1.0 / speed_total
 
+	_apply_encumbrance()
 	_apply_to_player()
 	_applying = false
+
+
+## Фаза 5: нагрузка физической брони. Суммарный вес предметов
+## в броневых слотах делится на грузоподъёмность персонажа —
+## получается доля encumbrance, из которой считаются штрафы шага
+## и восстановления стамины. При доле ≥ 1.0 включается «неподъёмная»
+## броня: персонаж сохраняет только шаг и удар.
+func _apply_encumbrance() -> void:
+	var armor_weight: float = 0.0
+	for slot: EquipmentSlot.Type in EquipmentSlot.ARMOR_SLOTS:
+		var stack: ItemStack = _slots.get(slot)
+		if stack == null or stack.is_empty():
+			continue
+		var item: ItemData = ItemRegistry.get_item(stack.item_id)
+		if item == null:
+			continue
+		armor_weight += item.unit_weight_kg * float(stack.amount)
+
+	_totals["armor_weight_kg"] = armor_weight
+
+	# Грузоподъёмность читаем у игрока; если свойства нет (тестовая
+	# заглушка) — считаем, что броня не давит, чтобы не обездвижить.
+	var capacity: float = 0.0
+	if _player != null:
+		var capacity_value: Variant = _player.get(CAPACITY_PROPERTY)
+		if capacity_value != null:
+			capacity = float(capacity_value)
+
+	if capacity <= 0.0:
+		_totals["encumbrance"] = 0.0
+		_totals["encumbrance_speed_multiplier"] = 1.0
+		_totals["encumbrance_regen_multiplier"] = 1.0
+		_totals["is_overencumbered"] = false
+		return
+
+	var encumbrance: float = armor_weight / capacity
+	var speed_penalty: float = _penalty(SPEED_PENALTY_PROPERTY, 0.4)
+	var regen_penalty: float = _penalty(REGEN_PENALTY_PROPERTY, 0.5)
+
+	_totals["encumbrance"] = encumbrance
+	_totals["encumbrance_speed_multiplier"] = clampf(
+		1.0 - encumbrance * speed_penalty, MINIMUM_SPEED_MULTIPLIER, 1.0
+	)
+	_totals["encumbrance_regen_multiplier"] = clampf(
+		1.0 - encumbrance * regen_penalty, MINIMUM_REGEN_MULTIPLIER, 1.0
+	)
+	_totals["is_overencumbered"] = encumbrance >= OVERENCUMBERED_THRESHOLD
+
+
+## Экспорт-множитель штрафа игрока с запасным значением.
+func _penalty(property_name: String, fallback: float) -> float:
+	if _player == null:
+		return fallback
+	var value: Variant = _player.get(property_name)
+	if value == null:
+		return fallback
+	return clampf(float(value), 0.0, 1.0)
 
 
 func _apply_to_player() -> void:
 	if _player == null:
 		return
+	# get() возвращает null у узлов без такого свойства — пропускаем их,
+	# чтобы тестовые заглушки без нагрузки не получали лишних полей.
+	for property_name: String in ENCUMBRANCE_PROPERTIES:
+		if _player.get(property_name) == null:
+			continue
+		_player.set(property_name, _totals.get(property_name))
+
 	for property_name: String in PROPERTY_RULES.keys():
 		if not _baselines.has(property_name):
 			continue
