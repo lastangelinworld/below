@@ -68,6 +68,13 @@ var max_health_bonus: int = 0
 @export var armor_overlay_back_foot: Texture2D
 @export var armor_overlay_front_foot: Texture2D
 
+## Ручная доводка оверлеев этого предмета: общий сдвиг (пиксели) и
+## множитель масштаба. Применяются ко всем суставам предмета после
+## автоматической подгонки по «окну» части тела. Нужны, когда рисунок
+## брони выступает за контур тела (наплечники, поля шляпы).
+@export var armor_overlay_offset: Vector2 = Vector2.ZERO
+@export_range(0.1, 3.0, 0.01) var armor_overlay_scale_factor: float = 1.0
+
 ## Текстура, которую персонаж держит в руке при экипировке.
 ## Если не задана, используется icon из ItemData.
 @export var held_weapon_texture: Texture2D

@@ -159,8 +159,8 @@ script = ExtResource("16_statusbarnumbers")
 
 [node name="ChestContainer" parent="." unique_id=1066114201 instance=ExtResource("19_jvuuw")]
 position = Vector2(-47, 161)
-initial_item_ids = Array[StringName]([&"plank_scraps", &"coal", &"flint", &"raw_meat", &"bone", &"fiber", &"wood_shield", &"wood_club"])
-initial_item_amounts = Array[int]([64, 64, 64, 12, 64, 64, 1, 1])
+initial_item_ids = Array[StringName]([&"plank_scraps", &"coal", &"flint", &"raw_meat", &"bone", &"fiber", &"wood_shield", &"wood_club", &"cloth_boots", &"cloth_chest", &"cloth_hat"])
+initial_item_amounts = Array[int]([64, 64, 64, 12, 64, 64, 1, 1, 1, 1, 1])
 
 [node name="SkeletonSpawner" parent="." unique_id=1761515993 instance=ExtResource("21_gf3xi")]
 position = Vector2(465, 158)

@@ -2602,14 +2602,25 @@ func _build_armor_overlays(item_id: StringName, slot: EquipmentSlot.Type) -> voi
 		overlay.name = "ArmorOverlay"
 		overlay.texture = texture
 		# Масштабируем оверлей до размера базовой текстуры сустава,
-		# чтобы контуры точно совпадали даже при разных размерах файлов.
-		if body.texture != null and body.texture is Texture2D:
-			var body_size: Vector2 = body.texture.get_size()
-			var tex_size: Vector2 = texture.get_size()
-			if tex_size.x > 0 and tex_size.y > 0:
-				overlay.scale = body_size / tex_size
+		# чтобы контуры совпадали даже при разных размерах файлов.
+		var tex_size: Vector2 = texture.get_size()
+		if tex_size.x <= 0 or tex_size.y <= 0:
+			continue
+		if body.texture != null:
+			overlay.scale = body.texture.get_size() / tex_size
 		overlay.position = Vector2.ZERO
+		# Ручная доводка предмета: общий сдвиг и множитель масштаба.
+		var item_data: ItemData = ItemRegistry.get_item(item_id)
+		if item_data is EquipmentComponent:
+			var comp: EquipmentComponent = item_data as EquipmentComponent
+			overlay.position += comp.armor_overlay_offset
+			overlay.scale *= comp.armor_overlay_scale_factor
 		overlay.show_behind_parent = false
+		# У задней кисти есть вложенный спрайт-хват (z_index = 1),
+		# который перекрывал оверлей. Берём z_index = 1 относительно
+		# части тела: броня рисуется поверх хвата, но не забирается
+		# на переднюю руку (её z = 3) — порядок слоёв рига не ломается.
+		overlay.z_index = 1
 		body.add_child(overlay)
 		_armor_overlay_nodes.append(overlay)
 
