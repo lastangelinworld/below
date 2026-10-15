@@ -591,11 +591,17 @@ func _on_player_died() -> void:
 
 	var fade_tween := _death_screen.create_tween()
 
+	# Даём увидеть само падение: экран смерти наползает,
+	# когда тело уже на земле (анимация death длится 1.3 с).
+	fade_tween.tween_interval(
+		1.1
+	)
+
 	fade_tween.tween_property(
 		_death_screen,
 		"modulate:a",
 		1.0,
-		0.5
+		0.7
 	)
 
 

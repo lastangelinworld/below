@@ -217,6 +217,9 @@ var jump_stamina_cost: float = 12.0
 @export var dodge_iframe_end: float = 0.35
 @export var dodge_stamina_cost: float = 15.0
 
+## Насколько корпус кренится в сторону движения во время рывка.
+@export var dodge_lean: float = 0.26
+
 
 @export_group("Poise")
 
@@ -531,6 +534,13 @@ var _shield_block_node: Node = null
 
 ## Исходный угол BodyBreath.
 var body_breath_base_rotation: float = 0.0
+
+## Наклон корпуса и головы в приседе, радианы. Подобрано вместе
+## с позой в tools/ragdoll: без наклона силуэт не влезает в клетку.
+var crouch_body_lean: float = 0.99
+var crouch_head_lean: float = -0.71
+var current_crouch_body_lean: float = 0.0
+var current_crouch_head_lean: float = 0.0
 
 ## Исходный угол головы, если узел HeadBreath существует.
 var head_breath_base_rotation: float = 0.0
@@ -1173,6 +1183,9 @@ func _handle_dodge(delta: float) -> void:
 			_dodge_elapsed >= dodge_iframe_start
 			and _dodge_elapsed <= dodge_iframe_end
 		)
+		# Корпус кренится в ту сторону, куда летит тело, и
+		# выпрямляется к концу рывка.
+		visuals.rotation = roll_direction * dodge_lean * _dodge_lean_shape(_dodge_elapsed)
 		if _dodge_elapsed >= dodge_duration:
 			_end_dodge()
 		return
@@ -1195,6 +1208,18 @@ func _handle_dodge(delta: float) -> void:
 	_start_dodge()
 	if skills != null:
 		skills.add_xp(SkillsComponent.Skill.DODGE, dodge_skill_xp)
+
+
+## Насколько корпус наклонён в данный момент рывка: 0 в начале,
+## 1 в полёте, снова 0 к приземлению.
+func _dodge_lean_shape(elapsed: float) -> float:
+	var rise: float = dodge_duration * 0.24
+	var fall: float = dodge_duration * 0.76
+	if elapsed <= rise:
+		return clampf(elapsed / maxf(rise, 0.001), 0.0, 1.0)
+	if elapsed >= fall:
+		return clampf((dodge_duration - elapsed) / maxf(dodge_duration - fall, 0.001), 0.0, 1.0)
+	return 1.0
 
 
 ## Стоимость ролла с учётом навыка «Уклонение».
@@ -1222,10 +1247,25 @@ func _start_dodge() -> void:
 
 	_player_state.force_change(PlayerStateMachine.State.DODGE)
 
-	# Визуал: наклон и лёгкое затемнение спрайта на время ролла.
-	visuals.rotation = -roll_direction * 0.25
+	# Визуал: затемнение и клип выпада. Наклон корпуса ведёт
+	# _handle_dodge — он зависит от направления движения в мире,
+	# а поворот Visuals не отражается вместе со спрайтом, поэтому
+	# в дорожке анимации его держать нельзя.
+	visuals.rotation = 0.0
 	visuals.modulate = Color(0.8, 0.8, 0.85)
 	secondary_motion_player.speed_scale = dodge_breath_speed
+
+	# Рывок по направлению взгляда и рывок назад — разные клипы:
+	# поза ног в них зеркальна, а спрайт отражается сам.
+	var dodge_clip: StringName = (
+		&"dodge_forward" if roll_direction * float(facing) >= 0.0 else &"dodge_back"
+	)
+	# Руки в рывке ведёт локомоция: если перед этим держали блок,
+	# её дорожки рук были отключены — включаем обратно.
+	_set_locomotion_arm_tracks_enabled(true)
+	if locomotion_player.has_animation(dodge_clip):
+		locomotion_player.speed_scale = 1.0
+		locomotion_player.play(dodge_clip, 0.06)
 
 
 ## Завершает ролл: снимает i-frames и возвращает спрайты в норму.
@@ -1266,6 +1306,11 @@ func _handle_horizontal_movement(delta: float) -> void:
 
 
 func _update_locomotion_animation() -> void:
+	# Рывок ведёт свой клип от начала и до конца, иначе ходьба
+	# перебивает выпад уже на втором кадре.
+	if is_rolling:
+		return
+
 	# Оглушение важнее локомоции: равновесие иссякло — персонаж теряет
 	# стойку и стоит открытым, пока poise не восстановится. Клип
 	# нециклический, его последний кадр удерживается до конца стаггера.
@@ -1383,10 +1428,30 @@ func _update_cursor_body_lean(delta: float) -> void:
 	current_body_lean = lerp_angle(current_body_lean, target_body_lean, smoothing_weight)
 	current_head_lean = lerp_angle(current_head_lean, target_head_lean, smoothing_weight)
 
-	body_breath.rotation = body_breath_base_rotation + current_body_lean
+	# Присед складывает корпус вперёд, а голову поднимает, чтобы
+	# персонаж смотрел перед собой. Эти два узла скрипт пишет сам
+	# каждый кадр, поэтому дорожками анимации их трогать нельзя —
+	# наклон приседа добавляется здесь и так же плавно.
+	var crouched: bool = is_crouching and not is_dead
+	current_crouch_body_lean = lerp(
+		current_crouch_body_lean,
+		crouch_body_lean if crouched else 0.0,
+		smoothing_weight
+	)
+	current_crouch_head_lean = lerp(
+		current_crouch_head_lean,
+		crouch_head_lean if crouched else 0.0,
+		smoothing_weight
+	)
+
+	body_breath.rotation = (
+		body_breath_base_rotation + current_body_lean + current_crouch_body_lean
+	)
 
 	if head_breath != null:
-		head_breath.rotation = head_breath_base_rotation + current_head_lean
+		head_breath.rotation = (
+			head_breath_base_rotation + current_head_lean + current_crouch_head_lean
+		)
 
 
 func _update_arm_aim() -> void:
@@ -2190,6 +2255,11 @@ func _die() -> void:
 		visuals.modulate = Color(1, 1, 1)
 		secondary_motion_player.speed_scale = current_breath_speed
 	hazard_damage_allowed_at.clear()
+	# Прицельная рука замирает там, куда смотрела мышь, —
+	# у падающего тела это выглядит сломанным. Обнуляем её,
+	# дальше позу руки целиком ведёт анимация смерти.
+	if front_arm_aim != null:
+		front_arm_aim.rotation = 0.0
 
 	if stop_on_death:
 		if mining_cooldown != null:
@@ -2202,9 +2272,15 @@ func _die() -> void:
 			# поэтому плееру нужен режим обработки вне паузы.
 			locomotion_player.process_mode = Node.PROCESS_MODE_ALWAYS
 			_set_locomotion_arm_tracks_enabled(true)
-			if locomotion_player.has_animation(&"death"):
+			# Поворот тела в анимации задан в мировых координатах и не
+			# отражается вместе со спрайтом, поэтому для взгляда влево
+			# нужен зеркальный клип — иначе игрок валится на спину.
+			var death_clip: StringName = &"death"
+			if facing < 0 and locomotion_player.has_animation(&"death_mirrored"):
+				death_clip = &"death_mirrored"
+			if locomotion_player.has_animation(death_clip):
 				locomotion_player.speed_scale = 1.0
-				locomotion_player.play(&"death")
+				locomotion_player.play(death_clip)
 			secondary_motion_player.stop()
 
 	died.emit()
