@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="282" height="415" viewBox="0 0 282 415">
+  <!-- Тканевый нагрудник: заднее бедро. Подгоняется под bbox (84,118)-(198,298).
+       Замените содержимое своей текстурой, сохранив размер 282x415. -->
+  <g>
+    <rect x="104" y="120" width="80" height="176" rx="24" fill="#9c8a68"/>
+    <rect x="110" y="126" width="68" height="164" rx="20" fill="#84734f"/>
+    <path d="M110 150 Q144 140 178 150" stroke="#6f5f46" stroke-width="4" fill="none"/>
+    <path d="M110 200 Q144 190 178 200" stroke="#6f5f46" stroke-width="4" fill="none"/>
+    <path d="M110 250 Q144 240 178 250" stroke="#6f5f46" stroke-width="4" fill="none"/>
+  </g>
+</svg>

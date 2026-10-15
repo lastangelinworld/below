@@ -1,27 +1,22 @@
-[gd_resource type="Resource" script_class="EquipmentComponent" format=3]
+[gd_resource type="Resource" script_class="EquipmentComponent" format=3 uid="uid://25tq24doxf17"]
 
-[ext_resource type="Script" path="res://scripts/equipment_component.gd" id="1_ec"]
-[ext_resource type="Texture2D" path="res://assets/temp/club_temp.svg" id="2_temp"]
-[ext_resource type="Texture2D" uid="uid://br5i2xp13o8f8" path="res://assets/temp/club_held.svg" id="3_held"]
+[ext_resource type="Texture2D" uid="uid://5j3qpdivbmbm" path="res://Texture/tex skel/sk1_0015_Слой-10.png" id="1_0kwe7"]
+[ext_resource type="Script" uid="uid://c0mgiuti6ld4i" path="res://scripts/equipment_component.gd" id="1_ec"]
+[ext_resource type="Texture2D" uid="uid://d1g8111glgrm8" path="res://assets/temp/club_temp.svg" id="2_temp"]
 
 [resource]
 script = ExtResource("1_ec")
-item_id = &"wood_club"
-display_name = "Дубина"
-name_few = "дубины"
-name_many = "дубин"
-unit_weight_kg = 2.0
-max_stack = 1
-icon = ExtResource("2_temp")
-held_weapon_texture = ExtResource("3_held")
 slot = 9
-armor = 0
 attack_damage = 2
 attack_speed_multiplier = 0.9
-attack_stamina_cost_modifier = 0.0
-stamina_bonus = 0.0
-max_health_bonus = 0
+held_weapon_texture = ExtResource("1_0kwe7")
 poise_damage = 6.0
 weapon_skill = 2
 trains_skill = true
-is_dual_hand = false
+item_id = &"wood_club"
+display_name = "Дубина"
+unit_weight_kg = 2.0
+max_stack = 1
+icon = ExtResource("2_temp")
+name_few = "дубины"
+name_many = "дубин"

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="282" height="415" viewBox="0 0 282 415">
+  <!-- Тканевый нагрудник: торс. Подгоняется под bbox торса (48,38)-(234,376).
+       Замените содержимое своей текстурой, сохранив размер 282x415. -->
+  <g>
+    <path d="M74 34 Q141 12 208 34 L226 250 Q141 282 56 250 Z" fill="#9c8a68"/>
+    <path d="M104 30 Q141 20 178 30 L141 96 Z" fill="#7a6a4d"/>
+    <path d="M74 34 Q96 60 92 96" stroke="#6f5f46" stroke-width="8" fill="none" stroke-linecap="round"/>
+    <path d="M208 34 Q186 60 190 96" stroke="#6f5f46" stroke-width="8" fill="none" stroke-linecap="round"/>
+    <path d="M120 110 Q124 180 118 246" stroke="#7f6f52" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <path d="M162 110 Q158 180 164 246" stroke="#7f6f52" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <path d="M56 250 Q141 282 226 250 L222 276 Q141 308 60 276 Z" fill="#84734f"/>
+    <path d="M56 250 Q141 282 226 250" stroke="#5d5039" stroke-width="6" fill="none"/>
+    <rect x="60" y="196" width="162" height="26" rx="9" fill="#6b5a3f"/>
+    <rect x="128" y="194" width="26" height="30" rx="6" fill="#4d4029"/>
+  </g>
+</svg>

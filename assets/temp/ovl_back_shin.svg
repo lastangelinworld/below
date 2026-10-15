@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="141" height="207" viewBox="0 0 141 207">
+  <!-- Тканевые сапоги: задняя голень. Подгоняется под bbox (28,52)-(118,168).
+       Замените содержимое своей текстурой, сохранив размер 141x207. -->
+  <g>
+    <rect x="40" y="54" width="64" height="112" rx="18" fill="#9c8a68"/>
+    <rect x="46" y="60" width="52" height="100" rx="14" fill="#84734f"/>
+    <path d="M44 80 L94 80" stroke="#6f5f46" stroke-width="4"/>
+    <path d="M44 110 L94 110" stroke="#6f5f46" stroke-width="4"/>
+    <path d="M44 140 L94 140" stroke="#6f5f46" stroke-width="4"/>
+  </g>
+</svg>

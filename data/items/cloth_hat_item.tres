@@ -1,22 +1,20 @@
-[gd_resource type="Resource" script_class="EquipmentComponent" format=3]
+[gd_resource type="Resource" script_class="EquipmentComponent" format=3 uid="uid://b3mhha16kop1y"]
 
-[ext_resource type="Script" path="res://scripts/equipment_component.gd" id="1_ec"]
-[ext_resource type="Texture2D" path="res://assets/temp/cloth_hat_temp.svg" id="2_temp"]
+[ext_resource type="Script" uid="uid://c0mgiuti6ld4i" path="res://scripts/equipment_component.gd" id="1_ec"]
+[ext_resource type="Texture2D" uid="uid://cydw0v82448rq" path="res://Texture/fabric armor/A_0008_head-1.png" id="1_gvqts"]
+[ext_resource type="Texture2D" uid="uid://conamhg65vy85" path="res://assets/temp/cloth_hat_temp.svg" id="2_temp"]
 
 [resource]
 script = ExtResource("1_ec")
+slot = 1
+armor = 1
+max_health_bonus = 2
+armor_overlay_texture = ExtResource("1_gvqts")
+armor_overlay_head = ExtResource("1_gvqts")
 item_id = &"cloth_hat"
-display_name = "Тканевая шапочка"
-name_few = "тканевые шапочки"
-name_many = "тканевых шапочек"
+display_name = "Тканевая шапка"
 unit_weight_kg = 0.5
 max_stack = 1
 icon = ExtResource("2_temp")
-slot = 1
-armor = 1
-attack_damage = 0
-attack_speed_multiplier = 1.0
-attack_stamina_cost_modifier = 0.0
-stamina_bonus = 0.0
-max_health_bonus = 2
-is_dual_hand = false
+name_few = "тканевые шапки"
+name_many = "тканевых шапок"

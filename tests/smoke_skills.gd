@@ -168,7 +168,7 @@ func _test_weapons_skill_mapping() -> int:
 			problems += 1
 
 	# Броня и щит — не оружие.
-	for id: String in ["cloth_shirt", "iron_chestplate", "wood_shield"]:
+	for id: String in ["cloth_chest", "iron_chestplate", "wood_shield"]:
 		var armor: EquipmentComponent = (
 			load("res://data/items/%s_item.tres" % id) as EquipmentComponent
 		)

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://cbake7istc0mb"]
+
+[ext_resource type="Script" path="res://tests/bake_fist_combat.gd" id="1_bake"]
+
+[node name="BakeFistCombat" type="Node"]
+script = ExtResource("1_bake")

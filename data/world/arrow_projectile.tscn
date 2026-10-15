@@ -1,29 +1,23 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://qy51pevfl8sn"]
 
-[ext_resource type="Script" path="res://scripts/arrow_projectile.gd" id="1_arrow"]
+[ext_resource type="Script" uid="uid://5b3tksfdd263" path="res://scripts/arrow_projectile.gd" id="1_arrow"]
+[ext_resource type="Texture2D" uid="uid://w3xoql01xerd" path="res://Texture/tex skel/sk1_0000_strela.png" id="2_o2wdc"]
 
 [sub_resource type="RectangleShape2D" id="arrow_shape"]
 size = Vector2(4, 14)
 
-[node name="ArrowProjectile" type="RigidBody2D"]
-script = ExtResource("1_arrow")
+[node name="ArrowProjectile" type="RigidBody2D" unique_id=1345995764]
 gravity_scale = 0.0
-continuous_cd = 2
-max_contacts_reported = 4
-contact_monitor = true
 can_sleep = false
+continuous_cd = 2
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_arrow")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1842458980]
 shape = SubResource("arrow_shape")
 
-[node name="Shaft" type="Polygon2D" parent="."]
-color = Color(0.78, 0.72, 0.6, 1)
-polygon = PackedVector2Array(-1.5, -4, 1.5, -4, 1.5, 7, -1.5, 7)
-
-[node name="Tip" type="Polygon2D" parent="."]
-color = Color(0.5, 0.46, 0.4, 1)
-polygon = PackedVector2Array(-2, -4, 2, -4, 0, -9)
-
-[node name="Fletching" type="Polygon2D" parent="."]
-color = Color(0.9, 0.88, 0.82, 1)
-polygon = PackedVector2Array(-2.5, 5, 2.5, 5, 2.5, 8, -2.5, 8)
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1460521216]
+rotation = 1.5707964
+scale = Vector2(0.095, 0.095)
+texture = ExtResource("2_o2wdc")

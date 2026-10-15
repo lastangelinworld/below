@@ -116,6 +116,11 @@ var poise: PoiseComponent
 ## спины получает бонусный урон.
 var facing: int = 1
 
+## Базовый масштаб Visuals из сцены (например 1.3). Нужен, потому что
+## переворот лицом пишет в scale.x и без опорного значения обнулил бы
+## размер, заданный в редакторе.
+var _visuals_base_scale: Vector2 = Vector2.ONE
+
 @onready var visuals: Node2D = get_node_or_null("Visuals") as Node2D
 @onready var animation_player: AnimationPlayer = get_node_or_null(
 	"AnimationPlayer"
@@ -151,6 +156,8 @@ func _ready() -> void:
 		melee_unit = randf() < 0.5
 	add_to_group("melee_enemy" if melee_unit else "ranged_enemy")
 	current_health = maximum_health
+	if visuals != null:
+		_visuals_base_scale = visuals.scale
 	_setup_poise_component()
 	_setup_animations()
 	_terrain = _find_terrain()
@@ -581,7 +588,7 @@ func _flip_towards(horizontal_difference: float) -> void:
 	if visuals == null or absf(horizontal_difference) < 0.5:
 		return
 	facing = -1 if horizontal_difference < 0.0 else 1
-	visuals.scale.x = float(facing)
+	visuals.scale.x = _visuals_base_scale.x * float(facing)
 
 
 func _get_game_time_seconds() -> float:

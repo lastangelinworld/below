@@ -283,22 +283,22 @@ func _test_overencumbered_restrictions() -> int:
 	var hat: EquipmentComponent = (
 		load("res://data/items/cloth_hat_item.tres") as EquipmentComponent
 	)
-	var shirt: EquipmentComponent = (
-		load("res://data/items/cloth_shirt_item.tres") as EquipmentComponent
+	var chest: EquipmentComponent = (
+		load("res://data/items/cloth_chest_item.tres") as EquipmentComponent
 	)
-	var pants: EquipmentComponent = (
-		load("res://data/items/cloth_pants_item.tres") as EquipmentComponent
+	var boots: EquipmentComponent = (
+		load("res://data/items/iron_boots_item.tres") as EquipmentComponent
 	)
-	if hat == null or shirt == null or pants == null:
-		print("FAIL: CLOTH ARMOR UNLOADABLE")
+	if hat == null or chest == null or boots == null:
+		print("FAIL: ARMOR UNLOADABLE")
 		return 1
 
 	ItemRegistry.register_item(hat)
-	ItemRegistry.register_item(shirt)
-	ItemRegistry.register_item(pants)
+	ItemRegistry.register_item(chest)
+	ItemRegistry.register_item(boots)
 
 	var holder = preload("res://tests/poise_stat_holder.gd").new()
-	# Маленькая грузоподъёмность: 2.5 кг / 1.0 = 2.5 → overencumbered.
+	# Маленькая грузоподъёмность: 8+5+5 = 18 / 1.0 = 18 → overencumbered.
 	holder.equip_load_capacity_kg = 1.0
 
 	var system = EquipmentSystem.new()
@@ -308,12 +308,12 @@ func _test_overencumbered_restrictions() -> int:
 	var inventory := InventoryData.new()
 	inventory.setup(9, true)
 	inventory.set_slot(0, &"cloth_hat", 1)
-	inventory.set_slot(1, &"cloth_shirt", 1)
-	inventory.set_slot(2, &"cloth_pants", 1)
+	inventory.set_slot(1, &"cloth_chest", 1)
+	inventory.set_slot(2, &"iron_boots", 1)
 
 	system.equip_from_inventory(inventory, 0, EquipmentSlot.Type.HEAD)
 	system.equip_from_inventory(inventory, 1, EquipmentSlot.Type.CHEST)
-	system.equip_from_inventory(inventory, 2, EquipmentSlot.Type.LEGS)
+	system.equip_from_inventory(inventory, 2, EquipmentSlot.Type.BOOTS)
 
 	var totals: Dictionary = system.get_totals()
 	var enc: float = float(totals.get("encumbrance", 0.0))

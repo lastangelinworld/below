@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://chotbar5m0kecr9"]
+
+[ext_resource type="Script" path="res://tests/smoke_hotbar_equip.gd" id="1_test"]
+
+[node name="SmokeHotbarEquip" type="Node"]
+script = ExtResource("1_test")

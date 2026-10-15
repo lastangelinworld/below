@@ -29,9 +29,9 @@ func _test_recipes() -> int:
 		["res://data/recipes/wood_club.tres", 3, "wood_club", 1],
 		["res://data/recipes/bone_pickaxe.tres", 3, "bone_pickaxe", 1],
 		["res://data/recipes/wood_shield.tres", 3, "wood_shield", 1],
+		["res://data/recipes/cloth_chest.tres", 3, "cloth_chest", 1],
+		["res://data/recipes/cloth_boots.tres", 3, "cloth_boots", 1],
 		["res://data/recipes/cloth_hat.tres", 3, "cloth_hat", 1],
-		["res://data/recipes/cloth_shirt.tres", 5, "cloth_shirt", 1],
-		["res://data/recipes/cloth_pants.tres", 5, "cloth_pants", 1],
 		["res://data/recipes/bone_greatclub.tres", 5, "bone_greatclub", 1],
 	]
 	for case: Array in cases:
@@ -82,12 +82,10 @@ func _test_workbench() -> int:
 		load("res://data/recipes/wood_shield.tres"),
 		load("res://data/recipes/bone_pickaxe.tres"),
 		load("res://data/recipes/cloth_hat.tres"),
+		load("res://data/recipes/cloth_chest.tres"),
+		load("res://data/recipes/cloth_boots.tres"),
 		load("res://data/recipes/bone_greatclub.tres"),
 		load("res://data/recipes/workbench.tres"),
-	]
-	var recipes2: Array = [
-		load("res://data/recipes/cloth_pants.tres"),
-		load("res://data/recipes/cloth_shirt.tres"),
 	]
 
 	# 1. Щит: квадрат 3×3 из девяти обломков со сдвигом (1,1).
@@ -150,30 +148,27 @@ func _test_workbench() -> int:
 		print("GREATCLUB NOT MATCHED: ", found)
 		problems += 1
 
-	# 4. Штаны 5×5: рисунок в середине сетки (узор можно ставить куда угодно).
+	# 4. Тканевый нагрудник 3×3: карманный рецепт ищется в сетке 5×5
+	# со сдвигом (1,1) — fiber в углах и целиком во 2-м и 3-м рядах.
 	for i: int in Workbench.GRID_SIZE:
 		bench.take_items(i, -1)
-	for cell: int in [5, 6, 7, 8, 9]:
+	for cell: int in [5, 7, 10, 11, 12, 15, 16, 17]:
 		bench.put_items(cell, &"fiber", 1)
-	bench.put_items(11, &"fiber", 1)
-	bench.put_items(12, &"fiber", 1)
-	bench.put_items(13, &"fiber", 1)
-	bench.put_items(15, &"fiber", 1)
-	bench.put_items(19, &"fiber", 1)
-	found = bench.find_recipe_with_offset(recipes2)
-	if found.get("recipe") == null or found["recipe"].recipe_id != &"cloth_pants":
-		print("PANTS (CENTERED 5x5) NOT MATCHED: ", found)
+	var recipes3: Array = [load("res://data/recipes/cloth_chest.tres")]
+	found = bench.find_recipe_with_offset(recipes3)
+	if found.get("recipe") == null or found["recipe"].recipe_id != &"cloth_chest":
+		print("CHEST NOT MATCHED: ", found)
 		problems += 1
 	else:
 		var made: Dictionary = bench.craft(found["recipe"], found["offset"])
-		if made.get("item_id") != &"cloth_pants":
-			print("PANTS CRAFT FAILED: ", made)
+		if made.get("item_id") != &"cloth_chest":
+			print("CHEST CRAFT FAILED: ", made)
 			problems += 1
 		var left := 0
 		for i: int in Workbench.GRID_SIZE:
 			left += bench.grid_amounts[i]
 		if left != 0:
-			print("PANTS LEFTOVER: ", left)
+			print("CHEST LEFTOVER: ", left)
 			problems += 1
 
 	# 5. Лишний ресурс в сетке — рецепт не срабатывает и ничего не списывается.
@@ -214,7 +209,7 @@ func _test_registry() -> int:
 	var problems := 0
 	for id: String in [
 		"workbench", "bone", "torch", "wood_club", "bone_pickaxe",
-		"wood_shield", "cloth_hat", "cloth_shirt", "cloth_pants",
+		"wood_shield", "cloth_hat", "cloth_chest", "cloth_boots",
 		"bone_greatclub",
 	]:
 		var item: ItemData = ItemRegistry.get_item(StringName(id))
@@ -240,10 +235,10 @@ func _test_registry() -> int:
 	# Факел и щит — во вторичный слот, ткань — по слотам брони.
 	for pair: Array in [
 		[&"torch", EquipmentSlot.Type.OFFHAND],
-		[&"wood_shield", EquipmentSlot.Type.OFFHAND],
-		[&"cloth_hat", EquipmentSlot.Type.HEAD],
-		[&"cloth_shirt", EquipmentSlot.Type.CHEST],
-		[&"cloth_pants", EquipmentSlot.Type.LEGS],
+	[&"wood_shield", EquipmentSlot.Type.OFFHAND],
+	[&"cloth_hat", EquipmentSlot.Type.HEAD],
+	[&"cloth_chest", EquipmentSlot.Type.CHEST],
+	[&"cloth_boots", EquipmentSlot.Type.BOOTS],
 	]:
 		var gear: EquipmentComponent = (
 			ItemRegistry.get_item(pair[0]) as EquipmentComponent

@@ -2,7 +2,6 @@
 
 [ext_resource type="Script" uid="uid://w2osemnf2uba" path="res://scripts/player.gd" id="1_abrql"]
 [ext_resource type="Script" uid="uid://3qxqhdjdwyge" path="res://scripts/item_data.gd" id="2_50fht"]
-[ext_resource type="Texture2D" uid="uid://bl3tw5x6njxs0" path="res://Texture/kirka.png" id="3_sglur"]
 [ext_resource type="Resource" uid="uid://vjg41257yoxb" path="res://data/items/campfire_item.tres" id="3_wuv6x"]
 [ext_resource type="Texture2D" uid="uid://bg608yt4pw1cg" path="res://Texture/torso.png" id="4_26q78"]
 [ext_resource type="Resource" uid="uid://ch58f70hs1thy" path="res://data/items/chest_item.tres" id="4_qpopc"]
@@ -32,7 +31,7 @@
 [ext_resource type="Resource" path="res://data/items/iron_chestplate_item.tres" id="35_iron_chestplate"]
 [ext_resource type="Script" uid="uid://dr0qnjfstoy2" path="res://scripts/combat/hurtbox.gd" id="36_hurtbox"]
 [ext_resource type="Script" uid="uid://dmkj5sgatitkv" path="res://scripts/combat/hitbox.gd" id="37_hitbox"]
-[ext_resource type="Texture2D" uid="uid://dlbn3kxwxigbb" path="res://assets/temp/wood_shield_temp.svg" id="38_shield_held"]
+[ext_resource type="Texture2D" uid="uid://d21yt78o4qbd7" path="res://Texture/BackHand w.png" id="39_backhand_grip"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_urcp4"]
 radius = 12.0
@@ -43,7 +42,7 @@ radius = 12.0
 height = 60.0
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hitb"]
-size = Vector2(50, 26)
+size = Vector2(64.618095, 14.093461)
 
 [sub_resource type="Animation" id="Animation_t1t22"]
 resource_name = "RESET"
@@ -295,7 +294,7 @@ tracks/6/keys = {
 tracks/7/type = "value"
 tracks/7/imported = false
 tracks/7/enabled = true
-tracks/7/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
+tracks/7/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
 tracks/7/interp = 1
 tracks/7/loop_wrap = true
 tracks/7/keys = {
@@ -421,7 +420,7 @@ tracks/6/keys = {
 tracks/7/type = "value"
 tracks/7/imported = false
 tracks/7/enabled = true
-tracks/7/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
+tracks/7/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
 tracks/7/interp = 1
 tracks/7/loop_wrap = true
 tracks/7/keys = {
@@ -535,7 +534,7 @@ tracks/6/keys = {
 tracks/7/type = "value"
 tracks/7/imported = false
 tracks/7/enabled = true
-tracks/7/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
+tracks/7/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
 tracks/7/interp = 3
 tracks/7/loop_wrap = true
 tracks/7/keys = {
@@ -647,7 +646,7 @@ tracks/6/keys = {
 tracks/7/type = "value"
 tracks/7/imported = false
 tracks/7/enabled = true
-tracks/7/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
+tracks/7/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
 tracks/7/interp = 3
 tracks/7/loop_wrap = true
 tracks/7/keys = {
@@ -836,7 +835,7 @@ tracks/6/keys = {
 tracks/7/type = "value"
 tracks/7/imported = false
 tracks/7/enabled = true
-tracks/7/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
+tracks/7/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
 tracks/7/interp = 3
 tracks/7/loop_wrap = true
 tracks/7/keys = {
@@ -855,7 +854,7 @@ tracks/8/keys = {
 "times": PackedFloat32Array(0, 0.08, 0.2, 0.45),
 "transitions": PackedFloat32Array(1, 1, 1, 1),
 "update": 0,
-"values": [Vector2(0, 6), Vector2(0, 0), Vector2(0, -5), Vector2(0, -3)]
+"values": [Vector2(-10, 116), Vector2(-10, 110), Vector2(-10, 105), Vector2(-10, 107)]
 }
 
 [sub_resource type="Animation" id="Animation_run_1a"]
@@ -950,14 +949,14 @@ tracks/6/keys = {
 tracks/7/type = "value"
 tracks/7/imported = false
 tracks/7/enabled = true
-tracks/7/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
+tracks/7/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
 tracks/7/interp = 3
 tracks/7/loop_wrap = true
 tracks/7/keys = {
-"times": PackedFloat32Array(0, 0.06, 0.12, 0.18, 0.22, 0.28, 0.34, 0.38, 0.42),
-"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1),
+"times": PackedFloat32Array(0, 0.2, 0.42),
+"transitions": PackedFloat32Array(1, 1, 1),
 "update": 0,
-"values": [0.937329, 1.039693, 0.455618, -0.254905, -0.226806, 0.596117, 1.521403, 1.611724, 0.937329]
+"values": [0.49218284906240073, -0.6510078109938852, 0.3525565089028544]
 }
 tracks/8/type = "value"
 tracks/8/imported = false
@@ -969,7 +968,7 @@ tracks/8/keys = {
 "times": PackedFloat32Array(0, 0.11, 0.22, 0.33, 0.44),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1),
 "update": 0,
-"values": [Vector2(0, 0), Vector2(0, 12), Vector2(0, 0), Vector2(0, 12), Vector2(0, 0)]
+"values": [Vector2(-10, 110), Vector2(-10, 122), Vector2(-10, 110), Vector2(-10, 122), Vector2(-10, 110)]
 }
 
 [sub_resource type="Animation" id="Animation_run_2b"]
@@ -1064,14 +1063,14 @@ tracks/6/keys = {
 tracks/7/type = "value"
 tracks/7/imported = false
 tracks/7/enabled = true
-tracks/7/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
+tracks/7/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
 tracks/7/interp = 3
 tracks/7/loop_wrap = true
 tracks/7/keys = {
-"times": PackedFloat32Array(0, 0.05, 0.09, 0.14, 0.17, 0.22, 0.26, 0.29, 0.32),
-"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1),
+"times": PackedFloat32Array(0, 0.16, 0.32),
+"transitions": PackedFloat32Array(1, 1, 1),
 "update": 0,
-"values": [1.059589, 1.175305, 0.515047, -0.288165, -0.256389, 0.673872, 1.719847, 1.821949, 1.059589]
+"values": [0.12566370614359154, -0.17802358370342142, 0.0994837673636766]
 }
 tracks/8/type = "value"
 tracks/8/imported = false
@@ -1083,7 +1082,155 @@ tracks/8/keys = {
 "times": PackedFloat32Array(0, 0.085, 0.17, 0.255, 0.34),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1),
 "update": 0,
-"values": [Vector2(0, 0), Vector2(0, 14), Vector2(0, 0), Vector2(0, 14), Vector2(0, 0)]
+"values": [Vector2(-10, 110), Vector2(-10, 124), Vector2(-10, 110), Vector2(-10, 124), Vector2(-10, 110)]
+}
+
+[sub_resource type="Animation" id="Animation_2soq1"]
+length = 0.34
+step = 0.01
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Visuals/FrontHip:rotation")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.34),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [-0.06, -0.3, -0.42, -0.45]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Visuals/FrontHip/FrontHipBreath/FrontThigh/FrontKnee:rotation")
+tracks/1/interp = 2
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.34),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [0.16, 0.7, 1.0, 1.05]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Visuals/FrontHip/FrontHipBreath/FrontThigh/FrontKnee/FrontKneeBreath/FrontShin/FrontAnkle:rotation")
+tracks/2/interp = 2
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.34),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [-0.1, -0.35, -0.5, -0.52]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Visuals/BackHip:rotation")
+tracks/3/interp = 2
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.34),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [0.1, 0.35, 0.5, 0.52]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Visuals/BackHip/BackHipBreath/BackThigh/BackKnee:rotation")
+tracks/4/interp = 2
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.34),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [0.2, 0.8, 1.15, 1.2]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("Visuals/BackHip/BackHipBreath/BackThigh/BackKnee/BackKneeBreath/BackAnkle:rotation")
+tracks/5/interp = 2
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.34),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [-0.12, -0.38, -0.55, -0.56]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("Visuals/BodyBreath:position")
+tracks/6/interp = 2
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.34),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-10, 110), Vector2(-8, 120), Vector2(-6.5, 126), Vector2(-6, 128)]
+}
+tracks/7/type = "value"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
+tracks/7/interp = 2
+tracks/7/loop_wrap = true
+tracks/7/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.34),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [0.16, 0.7, 1.0, 1.05]
+}
+tracks/8/type = "value"
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow:rotation")
+tracks/8/interp = 2
+tracks/8/loop_wrap = true
+tracks/8/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.34),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [-0.55, -0.2, -0.05, -0.02]
+}
+tracks/9/type = "value"
+tracks/9/imported = false
+tracks/9/enabled = true
+tracks/9/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
+tracks/9/interp = 2
+tracks/9/loop_wrap = true
+tracks/9/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.34),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [0.1, 0.6, 0.9, 0.95]
+}
+tracks/10/type = "value"
+tracks/10/imported = false
+tracks/10/enabled = true
+tracks/10/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow:rotation")
+tracks/10/interp = 2
+tracks/10/loop_wrap = true
+tracks/10/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.34),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [0.3, 0.1, 0.02, 0.0]
+}
+tracks/11/type = "value"
+tracks/11/imported = false
+tracks/11/enabled = true
+tracks/11/path = NodePath("Visuals:rotation")
+tracks/11/interp = 2
+tracks/11/loop_wrap = true
+tracks/11/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.34),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [0.0, 0.06, 0.1, 0.11]
 }
 
 [sub_resource type="Animation" id="Animation_we0b7"]
@@ -1178,14 +1325,14 @@ tracks/6/keys = {
 tracks/7/type = "value"
 tracks/7/imported = false
 tracks/7/enabled = true
-tracks/7/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
+tracks/7/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
 tracks/7/interp = 3
 tracks/7/loop_wrap = true
 tracks/7/keys = {
-"times": PackedFloat32Array(0, 0.08, 0.16, 0.24, 0.3, 0.38, 0.46, 0.52, 0.57333326),
-"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1),
+"times": PackedFloat32Array(0, 0.28, 0.57333326),
+"transitions": PackedFloat32Array(1, 1, 1),
 "update": 0,
-"values": [0.8150687606813517, 0.9040805525330629, 0.3961897402027126, -0.2216568150032797, -0.19722220547535943, 0.5183627878423157, 1.322959573011702, 1.401499389351447, 0.8150687606813517]
+"values": [0.0, 0.08726646259971647, 0.0]
 }
 tracks/8/type = "value"
 tracks/8/imported = false
@@ -1197,7 +1344,7 @@ tracks/8/keys = {
 "times": PackedFloat32Array(0, 0.16666667, 0.3, 0.43333337, 0.58),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1),
 "update": 0,
-"values": [Vector2(0, 0), Vector2(0, 10), Vector2(0, 0), Vector2(0, 10), Vector2(0, 0)]
+"values": [Vector2(-10, 110), Vector2(-10, 120), Vector2(-10, 110), Vector2(-10, 120), Vector2(-10, 100)]
 }
 
 [sub_resource type="Animation" id="Animation_wkba_1"]
@@ -1292,7 +1439,7 @@ tracks/6/keys = {
 tracks/7/type = "value"
 tracks/7/imported = false
 tracks/7/enabled = true
-tracks/7/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
+tracks/7/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
 tracks/7/interp = 3
 tracks/7/loop_wrap = true
 tracks/7/keys = {
@@ -1311,7 +1458,7 @@ tracks/8/keys = {
 "times": PackedFloat32Array(0, 0.2, 0.38, 0.56, 0.75),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1),
 "update": 0,
-"values": [Vector2(0, 0), Vector2(0, 6), Vector2(0, 0), Vector2(0, 6), Vector2(0, 0)]
+"values": [Vector2(-10, 110), Vector2(-10, 116), Vector2(-10, 110), Vector2(-10, 116), Vector2(-10, 110)]
 }
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_mtric"]
@@ -1324,6 +1471,7 @@ _data = {
 &"jump": SubResource("Animation_jump_1"),
 &"run": SubResource("Animation_run_1a"),
 &"sprint": SubResource("Animation_run_2b"),
+&"stagger": SubResource("Animation_2soq1"),
 &"walk": SubResource("Animation_we0b7"),
 &"walk_back": SubResource("Animation_wkba_1")
 }
@@ -1334,7 +1482,7 @@ length = 0.1
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
+tracks/0/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
@@ -1346,7 +1494,7 @@ tracks/0/keys = {
 tracks/1/type = "value"
 tracks/1/imported = false
 tracks/1/enabled = true
-tracks/1/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow:rotation")
+tracks/1/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow:rotation")
 tracks/1/interp = 1
 tracks/1/loop_wrap = true
 tracks/1/keys = {
@@ -1358,19 +1506,19 @@ tracks/1/keys = {
 tracks/2/type = "value"
 tracks/2/imported = false
 tracks/2/enabled = true
-tracks/2/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:position")
+tracks/2/path = NodePath("Visuals/BodyBreath/BackShoulder:position")
 tracks/2/interp = 1
 tracks/2/loop_wrap = true
 tracks/2/keys = {
 "times": PackedFloat32Array(0),
 "transitions": PackedFloat32Array(1),
 "update": 0,
-"values": [Vector2(0, 0)]
+"values": [Vector2(70, -183)]
 }
 tracks/3/type = "value"
 tracks/3/imported = false
 tracks/3/enabled = true
-tracks/3/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
+tracks/3/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
 tracks/3/interp = 1
 tracks/3/loop_wrap = true
 tracks/3/keys = {
@@ -1382,7 +1530,7 @@ tracks/3/keys = {
 tracks/4/type = "value"
 tracks/4/imported = false
 tracks/4/enabled = true
-tracks/4/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow:rotation")
+tracks/4/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow:rotation")
 tracks/4/interp = 1
 tracks/4/loop_wrap = true
 tracks/4/keys = {
@@ -1394,7 +1542,7 @@ tracks/4/keys = {
 tracks/5/type = "value"
 tracks/5/imported = false
 tracks/5/enabled = true
-tracks/5/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow/BackWrist:scale")
+tracks/5/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow/FrontWrist:scale")
 tracks/5/interp = 1
 tracks/5/loop_wrap = true
 tracks/5/keys = {
@@ -1410,7 +1558,7 @@ length = 0.4
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
+tracks/0/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
@@ -1422,7 +1570,7 @@ tracks/0/keys = {
 tracks/1/type = "value"
 tracks/1/imported = false
 tracks/1/enabled = true
-tracks/1/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow:rotation")
+tracks/1/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow:rotation")
 tracks/1/interp = 1
 tracks/1/loop_wrap = true
 tracks/1/keys = {
@@ -1438,38 +1586,26 @@ length = 0.36
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
+tracks/0/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
 "times": PackedFloat32Array(0, 0.06666667, 0.23333333, 0.33333334),
 "transitions": PackedFloat32Array(1, 0.2871746, 3.7321312, 1),
 "update": 0,
-"values": [0.0, 1.1205013797803594, -1.7592918860102844, 0.0]
+"values": [0.0, 1.1205013797803594, -0.832522053201295, 0.0]
 }
 tracks/1/type = "value"
 tracks/1/imported = false
 tracks/1/enabled = true
-tracks/1/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow:rotation")
+tracks/1/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow:rotation")
 tracks/1/interp = 1
 tracks/1/loop_wrap = true
 tracks/1/keys = {
 "times": PackedFloat32Array(0, 0.06666667, 0.23333335, 0.33333334),
 "transitions": PackedFloat32Array(1, 0.29730198, 4.756827, 1),
 "update": 0,
-"values": [0.0, -1.56032435128293, 0.17453292519943295, 0.0]
-}
-tracks/2/type = "value"
-tracks/2/imported = false
-tracks/2/enabled = true
-tracks/2/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow/BackWrist:scale")
-tracks/2/interp = 1
-tracks/2/loop_wrap = true
-tracks/2/keys = {
-"times": PackedFloat32Array(0, 0.06666667, 0.23333335, 0.33333334),
-"transitions": PackedFloat32Array(1, 1, 1, 1),
-"update": 0,
-"values": [Vector2(1, 1), Vector2(1, 1), Vector2(1.5, 1.5), Vector2(1, 1)]
+"values": [0.0, -1.56032435128293, -0.5497787143782138, 0.0]
 }
 
 [sub_resource type="Animation" id="Animation_ghoj8"]
@@ -1478,7 +1614,7 @@ length = 0.52
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
+tracks/0/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
@@ -1490,7 +1626,7 @@ tracks/0/keys = {
 tracks/1/type = "value"
 tracks/1/imported = false
 tracks/1/enabled = true
-tracks/1/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow:rotation")
+tracks/1/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow:rotation")
 tracks/1/interp = 1
 tracks/1/loop_wrap = true
 tracks/1/keys = {
@@ -1502,14 +1638,14 @@ tracks/1/keys = {
 tracks/2/type = "value"
 tracks/2/imported = false
 tracks/2/enabled = true
-tracks/2/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:position")
+tracks/2/path = NodePath("Visuals/BodyBreath/BackShoulder:position")
 tracks/2/interp = 1
 tracks/2/loop_wrap = true
 tracks/2/keys = {
 "times": PackedFloat32Array(0, 0.10018922, 0.33398876, 0.5005677),
 "transitions": PackedFloat32Array(1, 1, 1, 1),
 "update": 0,
-"values": [Vector2(0, 0), Vector2(-1, -2), Vector2(2, 2), Vector2(0, 0)]
+"values": [Vector2(70, -183), Vector2(69, -185), Vector2(72, -181), Vector2(70, -183)]
 }
 
 [sub_resource type="Animation" id="Animation_blk_1"]
@@ -1518,31 +1654,31 @@ length = 0.25
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
+tracks/0/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.16, 0.25),
+"times": PackedFloat32Array(0, 0.16666667, 0.23333333),
 "transitions": PackedFloat32Array(2.5, 1, 1),
 "update": 0,
-"values": [0.0, -1.45, -1.3]
+"values": [0.0, -0.574213323906134, -0.9896016858807848]
 }
 tracks/1/type = "value"
 tracks/1/imported = false
 tracks/1/enabled = true
-tracks/1/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow:rotation")
+tracks/1/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow:rotation")
 tracks/1/interp = 1
 tracks/1/loop_wrap = true
 tracks/1/keys = {
-"times": PackedFloat32Array(0, 0.16, 0.25),
+"times": PackedFloat32Array(0, 0.16666667, 0.23333333),
 "transitions": PackedFloat32Array(2.5, 1, 1),
 "update": 0,
-"values": [0.0, 1.75, 1.6]
+"values": [0.0, -0.502654824574367, -0.5515240436302086]
 }
 tracks/2/type = "value"
 tracks/2/imported = false
 tracks/2/enabled = true
-tracks/2/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow/BackWrist:scale")
+tracks/2/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow/FrontWrist:scale")
 tracks/2/interp = 1
 tracks/2/loop_wrap = true
 tracks/2/keys = {
@@ -1554,38 +1690,230 @@ tracks/2/keys = {
 tracks/3/type = "value"
 tracks/3/imported = false
 tracks/3/enabled = true
-tracks/3/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
+tracks/3/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
 tracks/3/interp = 1
 tracks/3/loop_wrap = true
 tracks/3/keys = {
-"times": PackedFloat32Array(0, 0.16, 0.25),
+"times": PackedFloat32Array(0, 0.16666667, 0.23333333),
 "transitions": PackedFloat32Array(2.5, 1, 1),
 "update": 0,
-"values": [0.0, -0.45, -0.35]
+"values": [0.0, -0.6562437987498683, -0.35]
 }
 tracks/4/type = "value"
 tracks/4/imported = false
 tracks/4/enabled = true
-tracks/4/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow:rotation")
+tracks/4/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow:rotation")
 tracks/4/interp = 1
 tracks/4/loop_wrap = true
 tracks/4/keys = {
-"times": PackedFloat32Array(0, 0.16, 0.25),
+"times": PackedFloat32Array(0, 0.16666667, 0.23333333),
 "transitions": PackedFloat32Array(2.5, 1, 1),
 "update": 0,
-"values": [0.0, 0.7, 0.6]
+"values": [0.0, -0.02094395102393175, -0.32812189937493413]
 }
 tracks/5/type = "value"
 tracks/5/imported = false
 tracks/5/enabled = true
-tracks/5/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:position")
+tracks/5/path = NodePath("Visuals/BodyBreath/BackShoulder:position")
 tracks/5/interp = 1
 tracks/5/loop_wrap = true
 tracks/5/keys = {
 "times": PackedFloat32Array(0),
 "transitions": PackedFloat32Array(1),
 "update": 0,
-"values": [Vector2(0, 0)]
+"values": [Vector2(70, -183)]
+}
+
+[sub_resource type="Animation" id="Animation_8q4fm"]
+length = 0.2
+step = 0.01
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.12, 0.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [0.0, -1.15, -1.05]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow:rotation")
+tracks/1/interp = 2
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.12, 0.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [0.0, -0.4153883619746506, -0.8552113334772214]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Visuals/BodyBreath/BackShoulder:position")
+tracks/2/interp = 2
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.12, 0.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(70, -183), Vector2(71.5, -184), Vector2(71, -183.6)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
+tracks/3/interp = 2
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.12, 0.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [0.0, -1.35, -1.25]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow:rotation")
+tracks/4/interp = 2
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 0.12, 0.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [0.0, -0.47123889803846897, -0.8761552845011532]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow/FrontWrist:scale")
+tracks/5/interp = 2
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0, 0.12, 0.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1.06, 1.06), Vector2(1.04, 1.04)]
+}
+
+[sub_resource type="Animation" id="Animation_np63p"]
+length = 0.38
+step = 0.01
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.16, 0.18, 0.28, 0.38),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [0.0, 0.01570796326794856, -1.621410875102732, -1.651081472386636, 0.18, 0.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow:rotation")
+tracks/1/interp = 2
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.16, 0.18, 0.28, 0.38),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [0.0, -1.2095131716320706, -0.1186823891356146, 0.01570796326794856, 0.12, 0.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
+tracks/2/interp = 2
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.16, 0.18, 0.28, 0.38),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [0.0, 0.31764992386296775, 0.2199114857512859, 0.06806784082777846, 0.11344640137963144, 0.0]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow:rotation")
+tracks/3/interp = 2
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.16, 0.18, 0.28, 0.38),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [0.0, -0.7470009198535732, -1.3718287920675434, -1.794198471050171, -0.8028514559173916, 0.0]
+}
+
+[sub_resource type="Animation" id="Animation_0eo6o"]
+length = 0.42
+step = 0.01
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.12, 0.2, 0.22, 0.32, 0.42),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [0.0, -0.55, -0.95, 0.35, 0.15, 0.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow:rotation")
+tracks/1/interp = 2
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.12, 0.2, 0.22, 0.32, 0.42),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [0.0, -0.4363323129985824, -0.27401669256310957, -1.284562329467827, 0.1, 0.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Visuals/BodyBreath/BackShoulder:position")
+tracks/2/interp = 2
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.12, 0.2, 0.22, 0.32, 0.42),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(70, -183), Vector2(68.5, -184), Vector2(67.5, -184.5), Vector2(72.5, -182.5), Vector2(71, -182.5), Vector2(70, -183)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
+tracks/3/interp = 2
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.12, 0.2, 0.22, 0.32, 0.42),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [0.0, -0.3769911184307756, 0.3263765701229394, -0.55, -0.4, 0.0]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow:rotation")
+tracks/4/interp = 2
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 0.12, 0.2, 0.22, 0.32, 0.42),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [0.0, -1.1588986233242344, -1.0890854532444612, -0.8656833089891879, -1.1641346110802175, 0.0]
 }
 
 [sub_resource type="Animation" id="Animation_intr_1"]
@@ -1594,7 +1922,7 @@ length = 0.6
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
+tracks/0/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
@@ -1606,7 +1934,7 @@ tracks/0/keys = {
 tracks/1/type = "value"
 tracks/1/imported = false
 tracks/1/enabled = true
-tracks/1/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow:rotation")
+tracks/1/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow:rotation")
 tracks/1/interp = 1
 tracks/1/loop_wrap = true
 tracks/1/keys = {
@@ -1618,19 +1946,19 @@ tracks/1/keys = {
 tracks/2/type = "value"
 tracks/2/imported = false
 tracks/2/enabled = true
-tracks/2/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:position")
+tracks/2/path = NodePath("Visuals/BodyBreath/BackShoulder:position")
 tracks/2/interp = 1
 tracks/2/loop_wrap = true
 tracks/2/keys = {
 "times": PackedFloat32Array(0, 0.18, 0.34, 0.56),
 "transitions": PackedFloat32Array(1, 1, 1, 1),
 "update": 0,
-"values": [Vector2(0, 0), Vector2(4, -2), Vector2(6, -1), Vector2(0, 0)]
+"values": [Vector2(70, -183), Vector2(74, -185), Vector2(76, -184), Vector2(70, -183)]
 }
 tracks/3/type = "value"
 tracks/3/imported = false
 tracks/3/enabled = true
-tracks/3/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
+tracks/3/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
 tracks/3/interp = 1
 tracks/3/loop_wrap = true
 tracks/3/keys = {
@@ -1642,7 +1970,7 @@ tracks/3/keys = {
 tracks/4/type = "value"
 tracks/4/imported = false
 tracks/4/enabled = true
-tracks/4/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow:rotation")
+tracks/4/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow:rotation")
 tracks/4/interp = 1
 tracks/4/loop_wrap = true
 tracks/4/keys = {
@@ -1654,7 +1982,7 @@ tracks/4/keys = {
 tracks/5/type = "value"
 tracks/5/imported = false
 tracks/5/enabled = true
-tracks/5/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow/BackWrist:scale")
+tracks/5/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow/FrontWrist:scale")
 tracks/5/interp = 1
 tracks/5/loop_wrap = true
 tracks/5/keys = {
@@ -1672,7 +2000,7 @@ step = 0.05
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
+tracks/0/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
 tracks/0/interp = 2
 tracks/0/loop_wrap = true
 tracks/0/keys = {
@@ -1684,7 +2012,7 @@ tracks/0/keys = {
 tracks/1/type = "value"
 tracks/1/imported = false
 tracks/1/enabled = true
-tracks/1/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow:rotation")
+tracks/1/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow:rotation")
 tracks/1/interp = 2
 tracks/1/loop_wrap = true
 tracks/1/keys = {
@@ -1696,7 +2024,7 @@ tracks/1/keys = {
 tracks/2/type = "value"
 tracks/2/imported = false
 tracks/2/enabled = true
-tracks/2/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
+tracks/2/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
 tracks/2/interp = 2
 tracks/2/loop_wrap = true
 tracks/2/keys = {
@@ -1708,7 +2036,7 @@ tracks/2/keys = {
 tracks/3/type = "value"
 tracks/3/imported = false
 tracks/3/enabled = true
-tracks/3/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow:rotation")
+tracks/3/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow:rotation")
 tracks/3/interp = 2
 tracks/3/loop_wrap = true
 tracks/3/keys = {
@@ -1720,19 +2048,19 @@ tracks/3/keys = {
 tracks/4/type = "value"
 tracks/4/imported = false
 tracks/4/enabled = true
-tracks/4/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:position")
+tracks/4/path = NodePath("Visuals/BodyBreath/BackShoulder:position")
 tracks/4/interp = 2
 tracks/4/loop_wrap = true
 tracks/4/keys = {
 "times": PackedFloat32Array(0, 1.2, 2.4),
 "transitions": PackedFloat32Array(1, 1, 1),
 "update": 0,
-"values": [Vector2(0, 0), Vector2(1, 1), Vector2(0, 0)]
+"values": [Vector2(70, -183), Vector2(71, -182), Vector2(70, -183)]
 }
 tracks/5/type = "value"
 tracks/5/imported = false
 tracks/5/enabled = true
-tracks/5/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow/BackWrist:scale")
+tracks/5/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow/FrontWrist:scale")
 tracks/5/interp = 1
 tracks/5/loop_wrap = true
 tracks/5/keys = {
@@ -1748,7 +2076,7 @@ length = 0.5
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
+tracks/0/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
@@ -1760,7 +2088,7 @@ tracks/0/keys = {
 tracks/1/type = "value"
 tracks/1/imported = false
 tracks/1/enabled = true
-tracks/1/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow:rotation")
+tracks/1/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow:rotation")
 tracks/1/interp = 1
 tracks/1/loop_wrap = true
 tracks/1/keys = {
@@ -1772,7 +2100,7 @@ tracks/1/keys = {
 tracks/2/type = "value"
 tracks/2/imported = false
 tracks/2/enabled = true
-tracks/2/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
+tracks/2/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
 tracks/2/interp = 1
 tracks/2/loop_wrap = true
 tracks/2/keys = {
@@ -1784,7 +2112,7 @@ tracks/2/keys = {
 tracks/3/type = "value"
 tracks/3/imported = false
 tracks/3/enabled = true
-tracks/3/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow:rotation")
+tracks/3/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow:rotation")
 tracks/3/interp = 1
 tracks/3/loop_wrap = true
 tracks/3/keys = {
@@ -1796,19 +2124,19 @@ tracks/3/keys = {
 tracks/4/type = "value"
 tracks/4/imported = false
 tracks/4/enabled = true
-tracks/4/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:position")
+tracks/4/path = NodePath("Visuals/BodyBreath/BackShoulder:position")
 tracks/4/interp = 1
 tracks/4/loop_wrap = true
 tracks/4/keys = {
 "times": PackedFloat32Array(0, 0.14, 0.26, 0.46),
 "transitions": PackedFloat32Array(1, 1, 1, 1),
 "update": 0,
-"values": [Vector2(0, 0), Vector2(-2, -3), Vector2(3, 3), Vector2(0, 0)]
+"values": [Vector2(70, -183), Vector2(68, -186), Vector2(73, -180), Vector2(70, -183)]
 }
 tracks/5/type = "value"
 tracks/5/imported = false
 tracks/5/enabled = true
-tracks/5/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow/BackWrist:scale")
+tracks/5/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow/FrontWrist:scale")
 tracks/5/interp = 1
 tracks/5/loop_wrap = true
 tracks/5/keys = {
@@ -1824,7 +2152,7 @@ length = 0.44
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
+tracks/0/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
@@ -1836,7 +2164,7 @@ tracks/0/keys = {
 tracks/1/type = "value"
 tracks/1/imported = false
 tracks/1/enabled = true
-tracks/1/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow:rotation")
+tracks/1/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow:rotation")
 tracks/1/interp = 1
 tracks/1/loop_wrap = true
 tracks/1/keys = {
@@ -1848,7 +2176,7 @@ tracks/1/keys = {
 tracks/2/type = "value"
 tracks/2/imported = false
 tracks/2/enabled = true
-tracks/2/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
+tracks/2/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
 tracks/2/interp = 1
 tracks/2/loop_wrap = true
 tracks/2/keys = {
@@ -1860,7 +2188,7 @@ tracks/2/keys = {
 tracks/3/type = "value"
 tracks/3/imported = false
 tracks/3/enabled = true
-tracks/3/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow:rotation")
+tracks/3/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow:rotation")
 tracks/3/interp = 1
 tracks/3/loop_wrap = true
 tracks/3/keys = {
@@ -1872,7 +2200,7 @@ tracks/3/keys = {
 tracks/4/type = "value"
 tracks/4/imported = false
 tracks/4/enabled = true
-tracks/4/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow/BackWrist:scale")
+tracks/4/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow/FrontWrist:scale")
 tracks/4/interp = 1
 tracks/4/loop_wrap = true
 tracks/4/keys = {
@@ -1884,14 +2212,14 @@ tracks/4/keys = {
 tracks/5/type = "value"
 tracks/5/imported = false
 tracks/5/enabled = true
-tracks/5/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:position")
+tracks/5/path = NodePath("Visuals/BodyBreath/BackShoulder:position")
 tracks/5/interp = 1
 tracks/5/loop_wrap = true
 tracks/5/keys = {
 "times": PackedFloat32Array(0),
 "transitions": PackedFloat32Array(1),
 "update": 0,
-"values": [Vector2(0, 0)]
+"values": [Vector2(70, -183)]
 }
 
 [sub_resource type="Animation" id="Animation_2hnd_3"]
@@ -1900,7 +2228,7 @@ length = 0.62
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
+tracks/0/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
@@ -1912,7 +2240,7 @@ tracks/0/keys = {
 tracks/1/type = "value"
 tracks/1/imported = false
 tracks/1/enabled = true
-tracks/1/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow:rotation")
+tracks/1/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow:rotation")
 tracks/1/interp = 1
 tracks/1/loop_wrap = true
 tracks/1/keys = {
@@ -1924,7 +2252,7 @@ tracks/1/keys = {
 tracks/2/type = "value"
 tracks/2/imported = false
 tracks/2/enabled = true
-tracks/2/path = NodePath("Visuals/BodyBreath/BackShoulder:rotation")
+tracks/2/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:rotation")
 tracks/2/interp = 1
 tracks/2/loop_wrap = true
 tracks/2/keys = {
@@ -1936,7 +2264,7 @@ tracks/2/keys = {
 tracks/3/type = "value"
 tracks/3/imported = false
 tracks/3/enabled = true
-tracks/3/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow:rotation")
+tracks/3/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow:rotation")
 tracks/3/interp = 1
 tracks/3/loop_wrap = true
 tracks/3/keys = {
@@ -1948,19 +2276,19 @@ tracks/3/keys = {
 tracks/4/type = "value"
 tracks/4/imported = false
 tracks/4/enabled = true
-tracks/4/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack:position")
+tracks/4/path = NodePath("Visuals/BodyBreath/BackShoulder:position")
 tracks/4/interp = 1
 tracks/4/loop_wrap = true
 tracks/4/keys = {
 "times": PackedFloat32Array(0, 0.2, 0.42, 0.58),
 "transitions": PackedFloat32Array(1, 1, 1, 1),
 "update": 0,
-"values": [Vector2(0, 0), Vector2(-3, -4), Vector2(4, 4), Vector2(0, 0)]
+"values": [Vector2(70, -183), Vector2(67, -187), Vector2(74, -179), Vector2(70, -183)]
 }
 tracks/5/type = "value"
 tracks/5/imported = false
 tracks/5/enabled = true
-tracks/5/path = NodePath("Visuals/BodyBreath/BackShoulder/BackElbow/BackWrist:scale")
+tracks/5/path = NodePath("Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow/FrontWrist:scale")
 tracks/5/interp = 1
 tracks/5/loop_wrap = true
 tracks/5/keys = {
@@ -1977,6 +2305,9 @@ _data = {
 &"attack_2": SubResource("Animation_221hk"),
 &"attack_3": SubResource("Animation_ghoj8"),
 &"block": SubResource("Animation_blk_1"),
+&"fist_block": SubResource("Animation_8q4fm"),
+&"fist_left": SubResource("Animation_np63p"),
+&"fist_right": SubResource("Animation_0eo6o"),
 &"interact": SubResource("Animation_intr_1"),
 &"inventory_loop": SubResource("Animation_inv_1"),
 &"two_handed_1": SubResource("Animation_2hnd_1"),
@@ -2027,7 +2358,7 @@ texture = ExtResource("5_bectd")
 
 [node name="BackShoulder" type="Node2D" parent="Visuals/BodyBreath" unique_id=1016993304]
 z_index = -3
-position = Vector2(69.99999, -182.99998)
+position = Vector2(70, -183)
 scale = Vector2(0.99999994, 0.99999994)
 
 [node name="BackUpperArm" type="Sprite2D" parent="Visuals/BodyBreath/BackShoulder" unique_id=1617364064]
@@ -2045,16 +2376,43 @@ texture = ExtResource("7_7thud")
 position = Vector2(75, 52)
 
 [node name="BackHand" type="Sprite2D" parent="Visuals/BodyBreath/BackShoulder/BackElbow/BackWrist" unique_id=979245969]
-position = Vector2(-34, -67)
+z_index = -4
+position = Vector2(-36.999992, -64.999985)
 texture = ExtResource("8_a1qjk")
 
-[node name="ShieldSocket" type="Node2D" parent="Visuals/BodyBreath/BackShoulder/BackElbow/BackWrist" unique_id=340907235]
+[node name="BackHand" type="Sprite2D" parent="Visuals/BodyBreath/BackShoulder/BackElbow/BackWrist/BackHand" unique_id=1750767451]
+z_index = 1
+position = Vector2(0, 7.6293945e-06)
+texture = ExtResource("39_backhand_grip")
+
+[node name="HandSocket" type="Node2D" parent="Visuals/BodyBreath/BackShoulder/BackElbow/BackWrist" unique_id=1693761321]
 position = Vector2(-38, -58)
 
-[node name="ShieldSprite" type="Sprite2D" parent="Visuals/BodyBreath/BackShoulder/BackElbow/BackWrist/ShieldSocket" unique_id=332174109]
-z_index = 2
-scale = Vector2(2.6, 2.6)
-texture = ExtResource("38_shield_held")
+[node name="Pickaxe" type="Node2D" parent="Visuals/BodyBreath/BackShoulder/BackElbow/BackWrist/HandSocket" unique_id=782860541]
+z_index = -3
+position = Vector2(5.0000057, 8.999993)
+rotation = -0.038397245
+scale = Vector2(5, 5)
+
+[node name="PickaxeSprite" type="Sprite2D" parent="Visuals/BodyBreath/BackShoulder/BackElbow/BackWrist/HandSocket/Pickaxe" unique_id=1642878019]
+z_index = -1
+texture_filter = 1
+position = Vector2(27.226019, -0.15496254)
+rotation = -0.71383965
+scale = Vector2(0.2, 0.2)
+
+[node name="Hitbox" type="Area2D" parent="Visuals/BodyBreath/BackShoulder/BackElbow/BackWrist/HandSocket/Pickaxe" unique_id=1091044251]
+position = Vector2(2.3223991, 22.906038)
+rotation = -0.70665467
+collision_layer = 16
+collision_mask = 32
+monitoring = false
+monitorable = false
+script = ExtResource("37_hitbox")
+
+[node name="HitboxShape" type="CollisionShape2D" parent="Visuals/BodyBreath/BackShoulder/BackElbow/BackWrist/HandSocket/Pickaxe/Hitbox" unique_id=527606567]
+position = Vector2(38.458164, -2.068882)
+shape = SubResource("RectangleShape2D_hitb")
 
 [node name="FrontArmAim" type="Node2D" parent="Visuals/BodyBreath" unique_id=501253708]
 z_index = 3
@@ -2081,33 +2439,15 @@ position = Vector2(37, 100)
 position = Vector2(7, 23)
 texture = ExtResource("11_yqrof")
 
-[node name="HandSocket" type="Node2D" parent="Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow/FrontWrist" unique_id=1693761321]
+[node name="ShieldSocket" type="Node2D" parent="Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow/FrontWrist" unique_id=340907235]
 position = Vector2(4, 23)
 
-[node name="Pickaxe" type="Node2D" parent="Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow/FrontWrist/HandSocket" unique_id=782860541]
-z_index = -3
-position = Vector2(-5, 1)
-rotation = 0.70240355
-scale = Vector2(5, 5)
-
-[node name="PickaxeSprite" type="Sprite2D" parent="Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow/FrontWrist/HandSocket/Pickaxe" unique_id=1642878019]
-visible = false
-z_index = 2
-texture_filter = 1
-position = Vector2(13, -13)
-scale = Vector2(0.5, 0.5)
-texture = ExtResource("3_sglur")
-
-[node name="Hitbox" type="Area2D" parent="Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow/FrontWrist/HandSocket/Pickaxe" unique_id=1091044251]
-collision_layer = 16
-collision_mask = 32
-monitoring = false
-monitorable = false
-script = ExtResource("37_hitbox")
-
-[node name="HitboxShape" type="CollisionShape2D" parent="Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow/FrontWrist/HandSocket/Pickaxe/Hitbox" unique_id=527606567]
-position = Vector2(13, -26)
-shape = SubResource("RectangleShape2D_hitb")
+[node name="ShieldSprite" type="Sprite2D" parent="Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow/FrontWrist/ShieldSocket" unique_id=332174109]
+z_index = 12
+z_as_relative = false
+position = Vector2(-35.000008, -81.000046)
+rotation = 1.2607431
+scale = Vector2(2.6, 2.6)
 
 [node name="BackHip" type="Node2D" parent="Visuals" unique_id=1519836747]
 z_index = -3

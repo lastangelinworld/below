@@ -1,1 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><path d="M10 40c0-14 10-24 22-24s22 10 22 24z" fill="#b9a98c" stroke="#6b5c43" stroke-width="3" stroke-linejoin="round"/><rect x="8" y="38" width="48" height="10" rx="5" fill="#cbbda1" stroke="#6b5c43" stroke-width="3"/><path d="M22 34c4-6 16-6 20 0" stroke="#8d7c5f" stroke-width="3" fill="none" stroke-linecap="round"/></svg>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Тканевая шапка — силуэт -->
+  <rect x="8" y="2" width="16" height="12" rx="3" fill="#c8a878" stroke="#8a6a3a" stroke-width="1"/>
+  <rect x="6" y="12" width="20" height="3" rx="1" fill="#b89868" stroke="#8a6a3a" stroke-width="1"/>
+</svg>

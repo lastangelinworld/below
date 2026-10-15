@@ -75,6 +75,18 @@ var parry_stagger_sec: float = 1.2
 @export_range(0.0, 10.0, 0.1)
 var block_stamina_per_damage: float = 1.0
 
+## Угол сектора защиты щита/рук в градусах. 180 — защищена вся
+## передняя полусфера, 120 — только удары почти прямо в лицо.
+## Удары вне конуса блокировка не гасит вообще.
+@export_range(30.0, 180.0, 5.0)
+var shield_block_cone_degrees: float = 180.0
+
+## Доля урона, которую персонаж получает, блокируя удар ГОЛЫМИ РУКАМИ
+## (скрещённые предплечья). 0.6 — руки гасят только 40%, щит заметно
+## надёжнее: без оружия блокировать стоит лишь из необходимости.
+@export_range(0.0, 1.0, 0.05)
+var fist_blocked_damage_ratio: float = 0.6
+
 ## Во сколько раз дороже блокировать тяжёлый удар (Фаза 7),
 ## помеченный в Hitbox как breaks_block: 3.0 — щит под таким
 ## ударом держится недолго, и игрок учится уходить роллом.
@@ -368,6 +380,28 @@ var vertical_attack_ratio: float = 0.75
 @export var allow_mining_upper_corners: bool = true
 
 
+@export_group("Unarmed Combat")
+
+## Урон голого кулака. Кулак слабее любого оружия: без дубины
+## драка — крайняя мера, а не стратегия.
+@export_range(1, 100, 1) var fist_damage: int = 2
+
+## Поиз-урон кулака: лёгкий, разбить равновесие одним ударом нельзя.
+@export_range(0.0, 100.0, 0.5) var fist_poise_damage: float = 2.0
+
+## Интервал между кулачными ударами. Кулаком не нужно «замахиваться»,
+## поэтому комбо заметно быстрее оружейного.
+@export_range(0.05, 2.0, 0.05) var fist_attack_interval: float = 0.18
+
+## Выносливость за кулачный удар. Почти бесплатно — иначе драка
+## голыми руками была бы наказанием вместо возможности.
+@export_range(0.0, 100.0, 0.5) var fist_stamina_cost: float = 3.0
+
+## Окно парирования голыми руками. Руки хуже щита: поймать удар
+## в тайминг сложнее. 0 — парирование без щита запрещено.
+@export_range(0.0, 1.0, 0.01) var fist_parry_window_sec: float = 0.12
+
+
 @export_group("Inventory")
 
 ## Все ItemData-ресурсы проекта. Они автоматически регистрируются при запуске.
@@ -394,14 +428,20 @@ var vertical_attack_ratio: float = 0.75
 )
 @onready var mining_cooldown: Timer = $MiningCooldown
 @onready var weapon_hitbox: Hitbox = get_node_or_null(
-	"Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow/FrontWrist/HandSocket/Pickaxe/Hitbox"
+	"Visuals/BodyBreath/BackShoulder/BackElbow/BackWrist/HandSocket/Pickaxe/Hitbox"
 ) as Hitbox
 @onready var held_weapon_sprite: Sprite2D = get_node_or_null(
-	"Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow/FrontWrist/HandSocket/Pickaxe/PickaxeSprite"
+	"Visuals/BodyBreath/BackShoulder/BackElbow/BackWrist/HandSocket/Pickaxe/PickaxeSprite"
 ) as Sprite2D
 @onready var shield_sprite: Sprite2D = get_node_or_null(
-	"Visuals/BodyBreath/BackShoulder/BackElbow/BackWrist/ShieldSocket/ShieldSprite"
+        "Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow/FrontWrist/ShieldSocket/ShieldSprite"
 ) as Sprite2D
+
+## Словарь оверлеев брони: ключ = item_id предмета,
+## значение = массив Sprite2D (один на каждый сустав).
+## Оверлеи создаются динамически при надевании и уничтожаются при снятии,
+## чтобы не занимать память и не мешать анимации.
+var _armor_overlay_nodes: Array[Sprite2D] = []
 
 
 ## Стандартная гравитация проекта.
@@ -479,6 +519,16 @@ var inventory_loop_playing: bool = false
 ## Кэш узла интерфейса инвентаря (группа "inventory_ui").
 var inventory_ui_node: Node = null
 
+## Удары без оружия — играются кулачные клипы.
+var fist_attacking: bool = false
+var fist_combo_step: int = 0
+var fist_attack_serial: int = 0
+## Хитбокс кулака: создаётся кодом на запястье передней руки
+## (см. _ensure_fist_hitbox).
+var _fist_hitbox: Hitbox = null
+## Физическая защита щита: создаётся кодом на корневом узле.
+var _shield_block_node: Node = null
+
 ## Исходный угол BodyBreath.
 var body_breath_base_rotation: float = 0.0
 
@@ -544,7 +594,18 @@ func _ready() -> void:
 	if not attack_player.animation_finished.is_connected(_on_attack_animation_finished):
 		attack_player.animation_finished.connect(_on_attack_animation_finished)
 
-	_validate_animations()
+	# Генерация всех анимаций кодом (в стиле SAS — тяжёлое дыхание,
+	# чёткие фазы windup→active→recovery).
+	PlayerAnimations.install_locomotion(locomotion_player)
+	PlayerAnimations.install_attack(attack_player)
+	PlayerAnimations.install_secondary_motion(secondary_motion_player)
+	# Добавляем кулачные клипы в уже запечённую библиотеку.
+	PlayerAnimations.ensure_fist_combat(attack_player)
+	# Клип оглушения потерялся при запекании сцены — дозаполняем его
+	# кодом, если в сцене его нет (правки существующего не затираются).
+	PlayerAnimations.ensure_stagger(locomotion_player)
+	_validate_code_animations()
+
 	_play_locomotion_animation(&"idle")
 
 	current_breath_speed = idle_breath_speed
@@ -561,6 +622,25 @@ func _ready() -> void:
 		if not equipment.equipment_changed.is_connected(_on_equipment_changed):
 			equipment.equipment_changed.connect(_on_equipment_changed)
 		_update_held_weapon_visuals()
+		_update_armor_overlays()
+
+	_ensure_shield_block()
+
+
+## Создаёт физическую защиту щита на корневом узле. Узел живёт вне
+## Visuals: риг зеркалится через scale.x, и зеркальная Area2D ушла бы
+## за спину при смене facing. ShieldBlock сам разворачивает форму по
+## facing игрока (см. _physics_process в shield_block.gd).
+func _ensure_shield_block() -> Node:
+	if _shield_block_node != null and is_instance_valid(_shield_block_node):
+		return _shield_block_node
+
+	var ShieldBlock := load("res://scripts/shield_block.gd")
+	_shield_block_node = ShieldBlock.new()
+	_shield_block_node.name = "ShieldBlock"
+	add_child(_shield_block_node)
+	_shield_block_node.setup(self)
+	return _shield_block_node
 
 
 ## Настраивает компонент выносливости: источник времени, флаг смерти, параметры.
@@ -697,14 +777,14 @@ func _process(delta: float) -> void:
 	_update_held_attack()
 
 
-func _validate_animations() -> void:
-	var locomotion_animations: Array[StringName] = [&"idle", &"walk"]
+func _validate_code_animations() -> void:
+	var locomotion_animations: Array[StringName] = [&"idle", &"walk", &"stagger", &"death"]
 
 	for animation_name: StringName in locomotion_animations:
 		if not locomotion_player.has_animation(animation_name):
 			push_error("LocomotionPlayer: отсутствует анимация " + String(animation_name))
 
-	var attack_animations: Array[StringName] = [&"attack_1", &"attack_2", &"attack_3"]
+	var attack_animations: Array[StringName] = [&"attack_1", &"attack_2", &"attack_3", &"block", &"RESET"]
 
 	for animation_name: StringName in attack_animations:
 		if not attack_player.has_animation(animation_name):
@@ -753,11 +833,13 @@ func _update_stance(delta: float) -> void:
 	# Присед и блок несовместимы: зажатый C снимает блок,
 	# а из «прилипанного» приседа ПКМ сначала пытается поднять
 	# персонажа, и только если встать удалось — поднимает щит.
+	# Блок доступен со щитом и с пустыми руками (скрещённые
+	# предплечья): без оружия персонаж держит гард кулаками.
 	var blocking_input: bool = (
 		InputMap.has_action(&"block")
 		and Input.is_action_pressed(&"block")
 		and is_on_floor()
-		and _has_shield_equipped()
+		and (_has_shield_equipped() or _is_unarmed())
 		and not crouch_input
 		and not poise.is_staggered()
 		and try_stand_up_for_action()
@@ -932,19 +1014,54 @@ func _has_shield_equipped() -> bool:
 	return stack != null and not stack.is_empty()
 
 
-## Возвращает true, если щит «смотрит» в сторону атаки.
-## Проверяет, что источник урона лежит в передней полусфере
-## относительно направления взгляда (facing).
-func _shield_faces(source_position: Vector2) -> bool:
+## Персонаж не держит ни оружия, ни щита — атакует кулаками.
+## Блок кулаками — скрещённые руки, не требует щита.
+func _is_unarmed() -> bool:
+	if equipment == null:
+		return true
+	var main: ItemStack = equipment.get_equipped_stack(EquipmentSlot.Type.MAINHAND)
+	var off: ItemStack = equipment.get_equipped_stack(EquipmentSlot.Type.OFFHAND)
+	return (main == null or main.is_empty()) and (off == null or off.is_empty())
+
+
+## Скрещённые руки блокируют, когда персонаж раздет и удерживает блок.
+func _is_fist_block() -> bool:
+	return is_blocking and _is_unarmed()
+
+
+## Возвращает true, если источник урона лежит в конусе защиты
+## (щит или кулаки). Конус развёрнут в направлении взгляда;
+## ширина задаётся shield_block_cone_degrees (180 = полусфера).
+func _is_in_shield_cone(source_position: Vector2) -> bool:
+	# Нулевая позиция означает «направления нет» (шипы, удушье):
+	# блок тут не при чём, урон проходит как есть.
+	if source_position == Vector2.ZERO:
+		return false
+
 	var to_source: Vector2 = source_position - global_position
-	# facing = 1 → смотрит вправо, -1 → влево.
-	# Скалярное произведение > 0 означает «попадание в полусферу».
-	return signf(to_source.x) == facing
+	if to_source.length_squared() < 1.0:
+		return false
+
+	# facing = 1 → смотрит вправо (угол 0), -1 → влево (угол PI).
+	var look_angle: float = PI * 0.5 * (1.0 - float(facing))
+	var angle: float = to_source.angle()
+	var half_cone: float = deg_to_rad(shield_block_cone_degrees * 0.5)
+	# Кратчайшая разница углов в диапазоне [0, PI].
+	var diff: float = absf(atan2(sin(angle - look_angle), cos(angle - look_angle)))
+	return diff <= half_cone
+
+
+## Возвращает true, если щит «смотрит» в сторону атаки.
+## Проверяет, что источник урона лежит в конусе защиты.
+## ДЕПРЕКИРОВАН: использовать _is_in_shield_cone().
+func _shield_faces(source_position: Vector2) -> bool:
+	return _is_in_shield_cone(source_position)
 
 
 ## Включает или снимает позу блока на AttackPlayer.
 ## Анимация block короткая и нециклическая: её последний кадр
 ## удерживает поднятый щит, пока кнопка зажата.
+## Кулачный блок — скрещённые руки, клип fist_block.
 func _update_block_animation() -> void:
 	if inventory_loop_playing:
 		# Инвентарь перекрыл блок: позу не трогаем, но при снятии
@@ -956,10 +1073,16 @@ func _update_block_animation() -> void:
 
 	if is_blocking:
 		pickaxe_swinging = false
+		fist_attacking = false
 		_set_locomotion_arm_tracks_enabled(false)
-		if attack_player.has_animation(&"block"):
-			attack_player.stop()
-			attack_player.play(&"block")
+		if _is_fist_block():
+			if attack_player.has_animation(&"fist_block"):
+				attack_player.stop()
+				attack_player.play(&"fist_block")
+		else:
+			if attack_player.has_animation(&"block"):
+				attack_player.stop()
+				attack_player.play(&"block")
 	else:
 		_set_locomotion_arm_tracks_enabled(true)
 		# Сняли блок: принудительно возвращаем руки в базовую позу.
@@ -967,16 +1090,18 @@ func _update_block_animation() -> void:
 		# уже могла завершиться, и её имя потерялось после stop().
 		# Если сейчас идёт замах атаки — руки уже заняты ударом,
 		# прерывать его нельзя (блок возобновится после атаки).
-		if pickaxe_swinging:
+		if pickaxe_swinging or fist_attacking:
 			return
 		attack_player.stop()
 		if attack_player.has_animation(&"RESET"):
 			attack_player.play(&"RESET")
 
 
-## Отключает на всех локомоционных анимациях треки рук (BackShoulder),
-## чтобы раскачивание плеча при ходьбе не спорило с позой блока:
-## пока щит поднят, двигаются только ноги и корпус.
+## Отключает на всех локомоционных анимациях треки рук, чтобы
+## раскачивание плеча при ходьбе не спорило с позой блока или замахом:
+## пока щит поднят или идёт удар, двигаются только ноги и корпус.
+## Фронтальная рука раньше принадлежала только AttackPlayer, но теперь
+## её покачивает и шаг, поэтому под отключение попадают оба плеча.
 func _set_locomotion_arm_tracks_enabled(should_enable: bool) -> void:
 	for animation_name: StringName in locomotion_player.get_animation_list():
 		var animation: Animation = locomotion_player.get_animation(animation_name)
@@ -984,7 +1109,11 @@ func _set_locomotion_arm_tracks_enabled(should_enable: bool) -> void:
 			continue
 		for track_index: int in animation.get_track_count():
 			var track_path: NodePath = animation.track_get_path(track_index)
-			if not String(track_path).contains("BackShoulder"):
+			var path_text: String = String(track_path)
+			if not (
+				path_text.contains("BackShoulder")
+				or path_text.contains("FrontArmAttack")
+			):
 				continue
 			animation.track_set_enabled(track_index, should_enable)
 
@@ -1137,6 +1266,14 @@ func _handle_horizontal_movement(delta: float) -> void:
 
 
 func _update_locomotion_animation() -> void:
+	# Оглушение важнее локомоции: равновесие иссякло — персонаж теряет
+	# стойку и стоит открытым, пока poise не восстановится. Клип
+	# нециклический, его последний кадр удерживается до конца стаггера.
+	if poise.is_staggered():
+		locomotion_player.speed_scale = 1.0
+		_play_locomotion_animation(&"stagger")
+		return
+
 	# В воздухе играется одноразовый jump: последний кадр
 	# (поджатые ноги) удерживается до приземления.
 	if not is_on_floor():
@@ -1278,6 +1415,7 @@ func _update_held_attack() -> void:
 
 	if Input.is_action_just_pressed(&"primary_action"):
 		combo_step = 0
+		fist_combo_step = 0
 	if not Input.is_action_pressed(&"primary_action"):
 		return
 	if pickaxe_swinging:
@@ -1291,7 +1429,100 @@ func _update_held_attack() -> void:
 		return
 	# Атака возможна и с зажатым ПКМ: блок отпускается
 	# только на время замаха (см. _start_next_combo_attack).
+	# Пустые руки бьют по своей схеме: два удара и свой темп.
+	if _is_unarmed():
+		_start_next_fist_attack()
+		return
 	_start_next_combo_attack()
+
+
+## Кулачное комбо: правый → левый → правый. Разворот клипа задаётся
+#_fist_clip_for(), момент касания — _get_fist_hit_delay(). Замах
+## по-прежнему «занимает» персонажа через pickaxe_swinging: этот флаг
+## означает «идёт замах», а не «в руке кирка», поэтому все существующие
+## проверки (прыжок, ролл, смена стойки, facing) продолжают работать.
+func _start_next_fist_attack() -> void:
+	fist_combo_step += 1
+	if fist_combo_step > 2:
+		fist_combo_step = 1
+
+	var animation_name: StringName = _fist_clip_for(fist_combo_step)
+	if not attack_player.has_animation(animation_name):
+		push_error("AttackPlayer: не найдена анимация " + String(animation_name))
+		fist_combo_step = 0
+		return
+	if not spend_stamina(fist_stamina_cost):
+		fist_combo_step = 0
+		return
+
+	_update_facing()
+	_update_arm_aim()
+	pickaxe_swinging = true
+	fist_attacking = true
+	attack_serial += 1
+	mining_cooldown.start(fist_attack_interval)
+	_set_locomotion_arm_tracks_enabled(false)
+	attack_player.stop()
+	attack_player.play(animation_name)
+
+	var hit_timer: SceneTreeTimer = get_tree().create_timer(_get_fist_hit_delay(fist_combo_step))
+	hit_timer.timeout.connect(_on_fist_hit_timeout.bind(attack_serial))
+
+
+## Клип по номеру удара: 1 — правый прямой, 2 — левый.
+## Правая рука (FrontArmAttack) следит за целью через FrontArmAim,
+## поэтому её удар дотягивается дальше и бьёт точнее.
+func _fist_clip_for(step: int) -> StringName:
+	return &"fist_right" if step == 1 else &"fist_left"
+
+
+## Момент касания кулачного удара. Обязан совпадать с HIT_DELAY
+## в соответствующем клипе player_animations.gd, иначе взмах
+## и урон разойдутся по времени.
+func _get_fist_hit_delay(step: int) -> float:
+	return PlayerAnimations.HIT_DELAY_1 if step == 1 else PlayerAnimations.HIT_DELAY_2
+
+
+## Кулак дошёл до цели: открываем окно поражения кулачного хитбокса.
+func _on_fist_hit_timeout(expected_attack_serial: int) -> void:
+	if expected_attack_serial != attack_serial or not pickaxe_swinging:
+		return
+	var fist: Hitbox = _ensure_fist_hitbox()
+	if fist != null:
+		fist.source_owner = self
+		fist.damage = fist_damage
+		fist.poise_damage = fist_poise_damage
+		fist.activate(0.1)
+	# Кулаком блок не сломаешь: урон по клеткам мира не наносим.
+
+
+## Кулачный хитбокс создаётся кодом на запястье передней руки, чтобы
+## не плодить вручную узлы в player.tscn и не зависеть от формы кирки:
+## кулак бьёт там, где реально находится кисть.
+func _ensure_fist_hitbox() -> Hitbox:
+	if _fist_hitbox != null and is_instance_valid(_fist_hitbox):
+		return _fist_hitbox
+	if weapon_hitbox == null:
+		return null
+
+	var wrist: Node2D = weapon_hitbox.get_parent().get_parent() as Node2D
+	if wrist == null:
+		return null
+
+	var fist := Hitbox.new()
+	fist.name = "FistHitbox"
+	fist.damage = fist_damage
+	fist.poise_damage = fist_poise_damage
+	# Форма вокруг кисти: небольшой квадрат вместо длинного «лезвия» кирки.
+	var shape := CollisionShape2D.new()
+	var box := RectangleShape2D.new()
+	box.size = Vector2(26.0, 26.0)
+	shape.shape = box
+	shape.position = Vector2(6.0, 18.0)
+	fist.add_child(shape)
+	wrist.add_child(fist)
+	_fist_hitbox = fist
+	return fist
 
 
 func _start_next_combo_attack() -> void:
@@ -1316,6 +1547,10 @@ func _start_next_combo_attack() -> void:
 	pickaxe_swinging = true
 	attack_serial += 1
 	mining_cooldown.start(mining_interval)
+	# Замах целиком принадлежит AttackPlayer: локомоционные треки рук
+	# на это время глушатся, иначе шаг продолжал бы раскачивать плечо
+	# параллельно с ударом.
+	_set_locomotion_arm_tracks_enabled(false)
 	attack_player.stop()
 	attack_player.play(animation_name)
 	_schedule_attack_hit(combo_step, attack_serial)
@@ -1601,7 +1836,9 @@ func _on_attack_animation_finished(animation_name: StringName) -> void:
 				attack_player.play(&"RESET")
 		return
 	if not String(animation_name).begins_with("attack_") \
-			and not String(animation_name).begins_with("two_handed_"):
+			and not String(animation_name).begins_with("two_handed_") \
+			and not String(animation_name).begins_with("fist_right") \
+			and not String(animation_name).begins_with("fist_left"):
 		return
 	if not pickaxe_swinging:
 		return
@@ -1610,6 +1847,12 @@ func _on_attack_animation_finished(animation_name: StringName) -> void:
 
 func _finish_pickaxe_swing() -> void:
 	pickaxe_swinging = false
+	fist_attacking = false
+	# Руки свободны: возвращаем локомоционное раскачивание. Если при этом
+	# удерживается щит, треки остаются выключенными — позу блока ведёт
+	# AttackPlayer, а локомоция не должна ей мешать.
+	if not is_blocking and not inventory_loop_playing:
+		_set_locomotion_arm_tracks_enabled(true)
 	_update_facing()
 	_update_arm_aim()
 
@@ -1719,8 +1962,12 @@ func take_damage(
 	# удар читается по длинному телеграфу и просит ролл, а не щит.
 	var final_amount: int = amount
 	var blocked: bool = false
-	if is_blocking and _has_shield_equipped() and _shield_faces(source_position):
-		if not breaks_block and _try_parry(attacker):
+	var is_shield_block: bool = is_blocking and _has_shield_equipped() and _shield_faces(source_position)
+	var is_fist_block: bool = is_blocking and _is_fist_block() and _is_in_shield_cone(source_position)
+	var is_blocking_active: bool = is_shield_block or is_fist_block
+
+	if is_blocking_active:
+		if not breaks_block and _try_parry(attacker, source_position):
 			return
 
 		# Навык «Блок» удешевляет поглощение удара.
@@ -1730,8 +1977,13 @@ func take_damage(
 		if breaks_block:
 			stamina_rate *= heavy_block_stamina_multiplier
 
+		# Кулаки блокируют хуже щита.
+		var effective_ratio: float = blocked_damage_ratio
+		if is_fist_block:
+			effective_ratio = fist_blocked_damage_ratio
+
 		if _stamina_component.spend(float(amount) * stamina_rate):
-			final_amount = maxi(1, int(ceilf(float(amount) * blocked_damage_ratio)))
+			final_amount = maxi(1, int(ceilf(float(amount) * effective_ratio)))
 			blocked = true
 			if skills != null:
 				skills.add_xp(SkillsComponent.Skill.BLOCKING, block_skill_xp)
@@ -1772,13 +2024,14 @@ func take_damage(
 
 ## Попытка парирования: требует окна от начала блока, отсутствия
 ## замаха и списания небольшой стамины. Успех: урон 0, атакующий
-## входит в стаггер.
-func _try_parry(attacker: Node) -> bool:
+## входит в стаггер, в точке касания сыплются искры.
+## Окно берётся от щита, а без щита — от голых рук (fist_parry_window_sec).
+func _try_parry(attacker: Node, source_position: Vector2) -> bool:
 	# В замахе парировать нельзя: рука занята оружием.
 	if pickaxe_swinging:
 		return false
 
-	var window: float = _shield_parry_window()
+	var window: float = _get_parry_window()
 	if window <= 0.0:
 		return false
 	# Навык «Блок» расширяет окно парирования.
@@ -1808,11 +2061,21 @@ func _try_parry(attacker: Node) -> bool:
 		0,
 		Color(0.75, 0.9, 1.0)
 	)
+	# Яркие искры при парировании — визуальный сигнал успеха.
+	_spawn_parry_sparks(source_position)
 	stamina_changed.emit(current_stamina, max_stamina)
 	return true
 
 
+## Создаёт искры в точке парирования: разлетаются веером в направлении
+## атакующего, быстро гаснут.
+func _spawn_parry_sparks(source_position: Vector2) -> void:
+	var dir: Vector2 = (source_position - global_position).normalized()
+	ParrySparks.burst(get_tree().get_current_scene(), global_position, dir)
+
+
 ## Окно парирования щита из параметров экипированного оффхенд-предмета.
+## Возвращает 0, если щита нет.
 func _shield_parry_window() -> float:
 	if equipment == null:
 		return 0.0
@@ -1827,6 +2090,20 @@ func _shield_parry_window() -> float:
 		return 0.0
 
 	return component.parry_window_sec
+
+
+## Окно парирования голыми руками. 0 — парирование без оружия запрещено.
+func _fist_parry_window() -> float:
+	if not _is_unarmed():
+		return 0.0
+	return fist_parry_window_sec
+
+
+## Возвращает текущее окно парирования: щит или кулаки.
+func _get_parry_window() -> float:
+	if _has_shield_equipped():
+		return _shield_parry_window()
+	return _fist_parry_window()
 
 
 ## Снимает входящий урон суммарной защитой экипировки.
@@ -2143,9 +2420,20 @@ func _held_texture_for(item_id: StringName) -> Texture2D:
 	return item.icon
 
 
+## Множитель размера held_weapon_texture из ресурса предмета.
+## Спрайт в сцене откалиброван под мелкие текстуры, поэтому крупные
+## (щит, дубина) уменьшаются значением меньше 1.0.
+func _held_scale_for(item_id: StringName) -> float:
+	var item: ItemData = ItemRegistry.get_item(item_id)
+	if item is EquipmentComponent:
+		return (item as EquipmentComponent).held_weapon_scale
+	return 1.0
+
+
 ## Сигнал от EquipmentSystem: экипировка изменилась, обновляем руки.
 func _on_equipment_changed(_slot: EquipmentSlot.Type) -> void:
 	_update_held_weapon_visuals()
+	_update_armor_overlays()
 	# Надетая/снятая броня меняет нагрузку, а с ней — шаг и реген.
 	_apply_encumbrance_to_stamina()
 	_report_equipped_weapon_skill(_slot)
@@ -2186,8 +2474,13 @@ func _update_held_weapon_visuals() -> void:
 				held_weapon_sprite.texture = texture
 			# Двуручное оружие выглядит крупнее: масштаб считаем от
 			# базового значения сцены, а не подменяем его наконечником.
+			# held_weapon_scale предмета подгоняет размер конкретной
+			# текстуры (щиты и дубины рисуются крупнее кирки).
 			var dual_hand_scale: float = 1.35 if _is_dual_hand_equipped() else 1.0
-			held_weapon_sprite.scale = held_weapon_base_scale * dual_hand_scale
+			held_weapon_sprite.scale = (
+				held_weapon_base_scale * dual_hand_scale
+				* _held_scale_for(main_stack.item_id)
+			)
 
 	# Щит появляется только вместе с экипированным предметом:
 	# в самой сцене на спрайте лежит превью-текстура, поэтому без
@@ -2200,5 +2493,134 @@ func _update_held_weapon_visuals() -> void:
 			var texture: Texture2D = _held_texture_for(off_stack.item_id)
 			if texture != null:
 				shield_sprite.texture = texture
-			shield_sprite.scale = shield_base_scale
+			shield_sprite.scale = shield_base_scale * _held_scale_for(off_stack.item_id)
 			shield_sprite.visible = true
+
+
+## Имена спрайтов частей тела и их абсолютные пути в риге игрока.
+## Оверлей брони вешается дитём на спрайт, поэтому наследует все
+## трансформации (повороты плеча, локтя, колена) от анимаций.
+const _BODY_SPRITE_PATHS := {
+	"Head": "Visuals/BodyBreath/NeckPivot/HeadBreath/Head",
+	"Torso": "Visuals/BodyBreath/Torso",
+	"BackUpperArm": "Visuals/BodyBreath/BackShoulder/BackUpperArm",
+	"BackForearm": "Visuals/BodyBreath/BackShoulder/BackElbow/BackForearm",
+	"BackHand": "Visuals/BodyBreath/BackShoulder/BackElbow/BackWrist/BackHand",
+	"FrontUpperArm": "Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontUpperArm",
+	"FrontForearm": "Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow/FrontForearm",
+	"FrontHand": "Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow/FrontWrist/FrontHand",
+	"BackThigh": "Visuals/BackHip/BackHipBreath/BackThigh",
+	"BackShin": "Visuals/BackHip/BackHipBreath/BackThigh/BackKnee/BackKneeBreath/BackShin",
+	"BackFoot": "Visuals/BackHip/BackHipBreath/BackThigh/BackKnee/BackKneeBreath/BackAnkle/BackFoot",
+	"FrontThigh": "Visuals/FrontHip/FrontHipBreath/FrontThigh",
+	"FrontShin": "Visuals/FrontHip/FrontHipBreath/FrontThigh/FrontKnee/FrontKneeBreath/FrontShin",
+	"FrontFoot": "Visuals/FrontHip/FrontHipBreath/FrontThigh/FrontKnee/FrontKneeBreath/FrontShin/FrontAnkle/FrontFoot",
+}
+
+
+## Возвращает словарь «имя сустава → текстура» из полей предмета.
+## Если задан только armor_overlay_texture (одна на весь предмет),
+## она возвращается под ключом "*" и применяется ко всем суставам.
+func _get_armor_overlays(item_id: StringName) -> Dictionary:
+	var item: ItemData = ItemRegistry.get_item(item_id)
+	var component: EquipmentComponent = item as EquipmentComponent
+	if component == null:
+		return {}
+	var result: Dictionary = {}
+	var joint_fields := {
+		"Head": component.armor_overlay_head,
+		"Torso": component.armor_overlay_torso,
+		"BackUpperArm": component.armor_overlay_back_upper_arm,
+		"BackForearm": component.armor_overlay_back_forearm,
+		"BackHand": component.armor_overlay_back_hand,
+		"FrontUpperArm": component.armor_overlay_front_upper_arm,
+		"FrontForearm": component.armor_overlay_front_forearm,
+		"FrontHand": component.armor_overlay_front_hand,
+		"BackThigh": component.armor_overlay_back_thigh,
+		"FrontThigh": component.armor_overlay_front_thigh,
+		"BackShin": component.armor_overlay_back_shin,
+		"FrontShin": component.armor_overlay_front_shin,
+		"BackFoot": component.armor_overlay_back_foot,
+		"FrontFoot": component.armor_overlay_front_foot,
+	}
+	for joint: String in joint_fields.keys():
+		var texture: Texture2D = joint_fields[joint]
+		if texture != null:
+			result[joint] = texture
+	# Fallback живёт под отдельным ключом: им докрываются суставы слота,
+	# для которых своя текстура не назначена (например кисть руки у
+	# нагрудника, когда художник нарисовал только торс и предплечье).
+	if component.armor_overlay_texture != null:
+		result["*"] = component.armor_overlay_texture
+	return result
+
+
+## Уничтожает все ранее созданные спрайты-оверлеи брони.
+func _clear_armor_overlays() -> void:
+	for sprite: Sprite2D in _armor_overlay_nodes:
+		if is_instance_valid(sprite):
+			sprite.queue_free()
+	_armor_overlay_nodes.clear()
+
+
+## Суставы, относящиеся к каждому броневому слоту. Fallback-текстура
+## armor_overlay_texture применяется только к суставам своего слота,
+## чтобы шлем не накрывал торс, а сапоги — руки.
+const _SLOT_JOINTS := {
+	EquipmentSlot.Type.HEAD: ["Head"],
+	EquipmentSlot.Type.CHEST: [
+		"Torso",
+		"BackUpperArm", "BackForearm", "BackHand",
+		"FrontUpperArm", "FrontForearm", "FrontHand",
+		"BackThigh", "FrontThigh",
+	],
+	EquipmentSlot.Type.BOOTS: ["BackShin", "FrontShin", "BackFoot", "FrontFoot"],
+}
+
+
+## Создаёт по одному спрайту-оверлею на каждый сустав, для которого
+## у предмета есть текстура. Оверлей — ребёнок спрайта тела, поэтому
+## двигается вместе с анимацией без дополнительной логики.
+func _build_armor_overlays(item_id: StringName, slot: EquipmentSlot.Type) -> void:
+	var overlays: Dictionary = _get_armor_overlays(item_id)
+	if overlays.is_empty():
+		return
+	var blanket: Texture2D = overlays.get("*")
+	var slot_joints: Array = _SLOT_JOINTS.get(slot, [])
+	for body_name: String in slot_joints:
+		# Приоритет у суставной текстуры; blanket докрывает суставы,
+		# для которых художник отдельную текстуру не назначил.
+		var texture: Texture2D = overlays.get(body_name)
+		if texture == null:
+			texture = blanket
+		if texture == null:
+			continue
+		var body: Sprite2D = get_node_or_null(_BODY_SPRITE_PATHS[body_name]) as Sprite2D
+		if body == null:
+			continue
+		var overlay := Sprite2D.new()
+		overlay.name = "ArmorOverlay"
+		overlay.texture = texture
+		# Масштабируем оверлей до размера базовой текстуры сустава,
+		# чтобы контуры точно совпадали даже при разных размерах файлов.
+		if body.texture != null and body.texture is Texture2D:
+			var body_size: Vector2 = body.texture.get_size()
+			var tex_size: Vector2 = texture.get_size()
+			if tex_size.x > 0 and tex_size.y > 0:
+				overlay.scale = body_size / tex_size
+		overlay.position = Vector2.ZERO
+		overlay.show_behind_parent = false
+		body.add_child(overlay)
+		_armor_overlay_nodes.append(overlay)
+
+
+## Пересобирает оверлеи брони по текущему содержимому броневых слотов.
+func _update_armor_overlays() -> void:
+	_clear_armor_overlays()
+	if equipment == null:
+		return
+	for slot: EquipmentSlot.Type in EquipmentSlot.ARMOR_SLOTS:
+		var stack: ItemStack = equipment.get_equipped_stack(slot)
+		if stack == null or stack.is_empty():
+			continue
+		_build_armor_overlays(stack.item_id, slot)

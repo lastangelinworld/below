@@ -1,24 +1,19 @@
-[gd_resource type="Resource" script_class="EquipmentComponent" format=3]
+[gd_resource type="Resource" script_class="EquipmentComponent" format=3 uid="uid://2xb3g2l80hsv"]
 
-[ext_resource type="Script" path="res://scripts/equipment_component.gd" id="1_ec"]
-[ext_resource type="Texture2D" path="res://assets/temp/wood_shield_temp.svg" id="2_temp"]
-[ext_resource type="Texture2D" uid="uid://bd2qkfyq3mcu7" path="res://assets/temp/shield_held.svg" id="3_held"]
+[ext_resource type="Script" uid="uid://c0mgiuti6ld4i" path="res://scripts/equipment_component.gd" id="1_ec"]
+[ext_resource type="Texture2D" uid="uid://cux3uojbf0xhp" path="res://Texture/tex skel/sk1_0019_Слой-13.png" id="1_w2mqi"]
+[ext_resource type="Texture2D" uid="uid://dlbn3kxwxigbb" path="res://assets/temp/wood_shield_temp.svg" id="2_temp"]
 
 [resource]
 script = ExtResource("1_ec")
+slot = 10
+armor = 3
+held_weapon_texture = ExtResource("1_w2mqi")
+held_weapon_scale = 0.5
 item_id = &"wood_shield"
 display_name = "Щит из досок"
-name_few = "щита из досок"
-name_many = "щитов из досок"
 unit_weight_kg = 4.0
 max_stack = 1
 icon = ExtResource("2_temp")
-held_weapon_texture = ExtResource("3_held")
-slot = 10
-armor = 3
-attack_damage = 0
-attack_speed_multiplier = 1.0
-attack_stamina_cost_modifier = 0.0
-stamina_bonus = 0.0
-max_health_bonus = 0
-is_dual_hand = false
+name_few = "щита из досок"
+name_many = "щитов из досок"

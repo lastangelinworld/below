@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="162" height="169" viewBox="0 0 162 169">
+  <!-- Тканевая шапка: натянутый мешок на макушке с подворотом.
+       Размер = head.png (162x169), накладывается поверх головы 1-в-1.
+       Замените содержимое своей текстурой, сохранив viewBox. -->
+  <g>
+    <!-- Тулья шапки -->
+    <path d="M28 66 Q26 22 81 14 Q136 22 134 66 L134 84 Q81 96 28 84 Z" fill="#8d7b5e"/>
+    <!-- Тканевые складки -->
+    <path d="M46 26 Q50 48 47 80" stroke="#6f5f46" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <path d="M81 16 Q83 46 81 88" stroke="#6f5f46" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <path d="M116 26 Q113 48 116 80" stroke="#6f5f46" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <!-- Подворот -->
+    <path d="M22 78 Q81 96 140 78 L140 96 Q81 114 22 96 Z" fill="#a8946f"/>
+    <path d="M22 78 Q81 96 140 78" stroke="#5d5039" stroke-width="4" fill="none"/>
+    <path d="M22 96 Q81 114 140 96" stroke="#5d5039" stroke-width="4" fill="none"/>
+    <!-- Шов сверху -->
+    <path d="M74 18 L88 18" stroke="#5d5039" stroke-width="4" stroke-linecap="round"/>
+  </g>
+</svg>

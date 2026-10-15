@@ -47,10 +47,21 @@ var _active: bool = false
 ## в одну цель, даже если области пересекаются несколько кадров.
 var _already_hit: Array[Hurtbox] = []
 
+## true, если удар был перехвачен ShieldBlock игрока — урон
+## отменяется, даже если хитбокс физически коснулся цели.
+var _shield_blocked: bool = false
+
+
+## Помечает удар как заблокированный щитом (извне, через Area2D).
+func mark_shield_blocked() -> void:
+	_shield_blocked = true
+
 
 func _ready() -> void:
 	collision_layer = CombatLayers.HITBOX
-	collision_mask = CombatLayers.HURTBOX
+	# HURTBOX — цели удара, SHIELDBLOCK — физическая защита щита игрока:
+	# касание щита помечает удар заблокированным до касания тела.
+	collision_mask = CombatLayers.HURTBOX | CombatLayers.SHIELDBLOCK
 	# Hitbox сам ничего не «слушает» и не нужен другим как цель:
 	# только включённый на замах monitoring генерирует события.
 	monitorable = false
@@ -63,7 +74,7 @@ func _ready() -> void:
 
 
 ## Открывает окно поражения: форма оружия активна seconds секунд.
-## Новый замах сбрасывает список задетых целей.
+## Новый замах сбрасывает список задетых целей и флаги щита.
 func activate(seconds: float = -1.0) -> void:
 	if seconds > 0.0:
 		activation_seconds = seconds
@@ -71,6 +82,7 @@ func activate(seconds: float = -1.0) -> void:
 	_already_hit.clear()
 	_activation_id += 1
 	_active = true
+	_shield_blocked = false
 
 	# Цели, уже внутри формы в момент замаха: area_entered для них
 	# не сработает (вхождения не было), поэтому поражаем сразу.
@@ -106,7 +118,32 @@ func _on_area_entered(area: Area2D) -> void:
 		return
 	if _already_hit.has(hurt):
 		return
+	# Цель закрылась щитом: урон не проходит. Флаг ставит ShieldBlock
+	# при касании, но порядок area_entered внутри кадра не гарантирован,
+	# поэтому дополнительно спрашиваем пересечение напрямую.
+	if _shield_blocked or _overlaps_target_shield(hurt):
+		return
 
 	_already_hit.append(hurt)
 	hurt.receive_hit(self)
 	hit_landed.emit(hurt.owner_body)
+
+
+## Есть ли прямо сейчас активная защита щита, принадлежащая цели удара.
+## Прямой запрос пересечения надёжнее сигнала: если щит и Hurtbox
+## пересекли форму оружия в одном физическом кадре, сигнал щита мог
+## прийти позже сигнала урона.
+func _overlaps_target_shield(hurt: Hurtbox) -> bool:
+	for area: Area2D in get_overlapping_areas():
+		var shield := area as Area2D
+		if shield == null:
+			continue
+		if not shield.has_method("is_blocking"):
+			continue
+		if not shield.is_blocking():
+			continue
+		if not shield.has_method("is_owner"):
+			continue
+		if shield.is_owner(hurt.owner_body):
+			return true
+	return false

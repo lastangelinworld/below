@@ -127,7 +127,63 @@ func set_selected_hotbar(index: int) -> void:
 	selected_hotbar = clampi(index, 0, 8)
 	if player != null:
 		player.set_meta("selected_hotbar_index", selected_hotbar)
+	_equip_hotbar_selection(selected_hotbar)
 	_refresh_all()
+
+## Ячейка инвентаря, соответствующая слоту быстрого доступа.
+const HOTBAR_FIRST_SLOT: int = 27
+
+## Быстрая экипировка клавишами 1-9 в стиле Minecraft: выбранный слот
+## определяет, чем персонаж сражается и что держит во второй руке.
+## Предметы меняются местами — снятое возвращается в ту же ячейку,
+## поэтому повторное нажатие того же номера ничего не ломает.
+## Пустая ячейка на руки не влияет: разоружаться нужно в окне экипировки,
+## иначе повторное нажатие «своего» номера сбрасывало бы только что
+## надетое оружие (ячейка к этому моменту уже пуста).
+func _equip_hotbar_selection(index: int) -> void:
+	if inventory == null:
+		return
+	var system := _get_equipment()
+	if system == null:
+		return
+	var slot_index: int = HOTBAR_FIRST_SLOT + index
+	var stack: ItemStack = inventory.get_slot(slot_index)
+	if stack == null or stack.is_empty():
+		return
+
+	var item: ItemData = ItemRegistry.get_item(stack.item_id)
+	if item == null:
+		return
+	var component: EquipmentComponent = item as EquipmentComponent
+	if component == null:
+		return
+
+	var target: EquipmentSlot.Type = component.slot
+	if target != EquipmentSlot.Type.MAINHAND and target != EquipmentSlot.Type.OFFHAND:
+		return
+	# Уже надето то же самое — перекладывать нечего.
+	if not system.get_equipped_stack(target).is_empty() \
+			and system.get_equipped_stack(target).item_id == stack.item_id:
+		return
+	if not system.can_accept_item(target, stack.item_id):
+		return
+
+	# Одна единица: оружие и щит занимают руку целиком, а стак факелов
+	# должен остаться в ячейке, чтобы его можно было заменить обратно.
+	var taken: ItemStack = inventory.take_from_slot(slot_index, 1)
+	if taken.is_empty():
+		return
+	var displaced: ItemStack = system.swap_single(target, taken)
+	# Снятое с руки кладём в ту же ячейку хотбара: она освобождена
+	# целиком (в ячейке был одиночный предмет). Иначе — в рюкзак.
+	if not displaced.is_empty():
+		if inventory.get_slot(slot_index).is_empty():
+			inventory.set_slot(
+				slot_index, displaced.item_id, displaced.amount
+			)
+		else:
+			_store_or_drop(displaced)
+	_return_ejected(system)
 
 func _connect_player() -> void:
 	player = get_node_or_null(player_path)
@@ -151,6 +207,9 @@ func _connect_player() -> void:
 	_validate_crafting_setup()
 	player.set_meta("selected_hotbar_index", selected_hotbar)
 	_build_views()
+	# Стартовая экипировка: предмет из выбранного слота быстрого доступа
+	# сразу оказывается в руке, как при нажатии его клавиши.
+	_equip_hotbar_selection(selected_hotbar)
 	_refresh_all()
 
 func _new_view(index: int) -> InventorySlotUI:
@@ -205,12 +264,37 @@ func _build_equipment_views() -> void:
 		var slot_type: EquipmentSlot.Type = EquipmentSlot.ALL_SLOTS[i]
 		var view := _new_view(i)
 		view.slot_hint = EquipmentSlot.get_display_name(slot_type)
+		var background: Texture2D = load(_slot_background_path(slot_type)) as Texture2D
+		if background != null:
+			view.set_background(background)
 		equipment_grid.add_child(view)
 		view.clear_display()
 		view.slot_pressed.connect(_on_equipment_slot_pressed)
 		view.slot_hovered.connect(_on_equipment_hover)
 		equipment_views.append(view)
 		equipment_slot_types.append(slot_type)
+
+
+## Фоновая подсказка слота: силуэт предмета, который в него надевается.
+## Временные заглушки из assets/temp — заменяются вместе с иконками предметов.
+func _slot_background_path(slot_type: EquipmentSlot.Type) -> String:
+	match slot_type:
+		EquipmentSlot.Type.HEAD:
+			return "res://assets/temp/slot_bg_head.svg"
+		EquipmentSlot.Type.CHEST:
+			return "res://assets/temp/slot_bg_chest.svg"
+		EquipmentSlot.Type.BOOTS:
+			return "res://assets/temp/slot_bg_boots.svg"
+		EquipmentSlot.Type.RING_LEFT, EquipmentSlot.Type.RING_RIGHT:
+			return "res://assets/temp/slot_bg_ring.svg"
+		EquipmentSlot.Type.NECKLACE:
+			return "res://assets/temp/slot_bg_necklace.svg"
+		EquipmentSlot.Type.MAINHAND:
+			return "res://assets/temp/slot_bg_mainhand.svg"
+		EquipmentSlot.Type.OFFHAND:
+			return "res://assets/temp/slot_bg_offhand.svg"
+		_:
+			return ""
 
 
 ## Лениво находит систему экипировки игрока и подписывается на её

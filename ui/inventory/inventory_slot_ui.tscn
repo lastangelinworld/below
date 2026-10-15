@@ -29,6 +29,12 @@ custom_minimum_size = Vector2(52, 52)
 mouse_filter = 0
 theme_override_styles/panel = SubResource("normal")
 script = ExtResource("1")
+[node name="BackgroundIcon" type="TextureRect" parent="."]
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+modulate = Color(1, 1, 1, 0.35)
 [node name="ItemMargin" type="MarginContainer" parent="."]
 layout_mode = 2
 theme_override_constants/margin_left = 5

@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="EquipmentComponent" format=3 uid="uid://bq1jg0naj57gm"]
+
+[ext_resource type="Script" uid="uid://c0mgiuti6ld4i" path="res://scripts/equipment_component.gd" id="1_ec"]
+[ext_resource type="Texture2D" uid="uid://ciu7n6h8kngbx" path="res://Texture/fabric armor/A_0003_BackFoot-1-.png" id="1_uchfr"]
+[ext_resource type="Texture2D" uid="uid://c8pxguysokkqr" path="res://Texture/fabric armor/A_0002_BackShin-1.png" id="2_66v3w"]
+[ext_resource type="Texture2D" uid="uid://deusqoyt2nqoo" path="res://assets/temp/cloth_boots_temp.svg" id="2_temp"]
+[ext_resource type="Texture2D" uid="uid://bhk6s2sy845ry" path="res://Texture/fabric armor/A_0016_FrontFoot-1.png" id="3_qwmej"]
+[ext_resource type="Texture2D" uid="uid://pv03w8nsbhwd" path="res://Texture/fabric armor/A_0015_FrontShin-1.png" id="4_u4gbm"]
+
+[resource]
+script = ExtResource("1_ec")
+slot = 11
+armor = 1
+max_health_bonus = 2
+armor_overlay_back_shin = ExtResource("2_66v3w")
+armor_overlay_front_shin = ExtResource("4_u4gbm")
+armor_overlay_back_foot = ExtResource("1_uchfr")
+armor_overlay_front_foot = ExtResource("3_qwmej")
+item_id = &"cloth_boots"
+display_name = "Тканевые сапоги"
+unit_weight_kg = 0.5
+max_stack = 1
+icon = ExtResource("2_temp")
+name_few = "тканевые сапоги"
+name_many = "тканевых сапог"

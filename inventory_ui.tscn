@@ -9,6 +9,9 @@
 [ext_resource type="Resource" path="res://data/recipes/torch.tres" id="6_torch"]
 [ext_resource type="Resource" path="res://data/recipes/wood_club.tres" id="7_club"]
 [ext_resource type="Resource" path="res://data/recipes/bone_pickaxe.tres" id="8_bonepick"]
+[ext_resource type="Resource" path="res://data/recipes/cloth_hat.tres" id="9_cloth_hat"]
+[ext_resource type="Resource" path="res://data/recipes/cloth_chest.tres" id="10_cloth_chest"]
+[ext_resource type="Resource" path="res://data/recipes/cloth_boots.tres" id="11_cloth_boots"]
 [ext_resource type="Script" uid="uid://3qxqhdjdwyge" path="res://scripts/item_data.gd" id="6_f4u5k"]
 [ext_resource type="Resource" uid="uid://ch58f70hs1thy" path="res://data/items/chest_item.tres" id="7_yjakb"]
 
@@ -71,7 +74,7 @@ corner_radius_bottom_left = 4
 layer = 20
 script = ExtResource("1")
 slot_scene = ExtResource("2")
-crafting_recipes = Array[ExtResource("3_o6um4")]([ExtResource("4_m5yu5"), ExtResource("5_bbtsg"), ExtResource("5_workbench"), ExtResource("6_torch"), ExtResource("7_club"), ExtResource("8_bonepick")])
+crafting_recipes = Array[ExtResource("3_o6um4")]([ExtResource("4_m5yu5"), ExtResource("5_bbtsg"), ExtResource("5_workbench"), ExtResource("6_torch"), ExtResource("7_club"), ExtResource("8_bonepick"), ExtResource("9_cloth_hat"), ExtResource("10_cloth_chest"), ExtResource("11_cloth_boots")])
 crafting_items = Array[ExtResource("6_f4u5k")]([ExtResource("7_yjakb")])
 
 [node name="Overlay" type="ColorRect" parent="." unique_id=1847642008]

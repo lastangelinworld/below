@@ -9,9 +9,12 @@ signal slot_hovered(slot_index: int, entered: bool)
 @onready var item_icon: TextureRect = $ItemMargin/ItemIcon
 @onready var amount_label: Label = $AmountLabel
 @onready var selection: Panel = $Selection
+@onready var background_icon: TextureRect = $BackgroundIcon
 var slot_index := -1
 ## Подпись пустой ячейки (например «Шлем») для слотов экипировки.
 var slot_hint: String = ""
+## Фоновая текстура для пустого слота экипировки.
+var background_texture: Texture2D = null
 
 func _ready() -> void:
     mouse_entered.connect(func(): slot_hovered.emit(slot_index, true))
@@ -28,6 +31,8 @@ func display_stack(stack: ItemStack) -> void:
     var item: ItemData = ItemRegistry.get_item(stack.item_id)
     item_icon.texture = item.icon if item != null else null
     amount_label.text = str(stack.amount) if stack.amount > 1 else ""
+    # Скрываем фон когда предмет надет.
+    background_icon.visible = false
     var prefix: String = (slot_hint + "\n") if not slot_hint.is_empty() else ""
     if item == null:
         tooltip_text = "%sНеизвестный предмет: %s × %d" % [prefix, stack.item_id, stack.amount]
@@ -39,11 +44,21 @@ func clear_display() -> void:
         return
     item_icon.texture = null
     amount_label.text = ""
+    background_icon.texture = background_texture
+    background_icon.visible = background_texture != null
     tooltip_text = slot_hint if not slot_hint.is_empty() else "Пустая ячейка"
 
 func set_selected(value: bool) -> void:
     if is_instance_valid(selection):
         selection.visible = value
+
+## Назначить фоновую текстуру для пустого слота.
+func set_background(tex: Texture2D) -> void:
+    background_texture = tex
+    if not is_node_ready():
+        return
+    background_icon.texture = tex
+    background_icon.visible = true
 
 func _gui_input(event: InputEvent) -> void:
     var mouse := event as InputEventMouseButton

@@ -45,9 +45,37 @@ var max_health_bonus: int = 0
 ## Отображаемая текстура на слоте экипировки.
 @export var equipment_icon: Texture2D
 
+## Текстура, накладываемая на соответствующую часть тела персонажа
+## при надевании (шлем → голова, нагрудник → торс, сапоги → ступни).
+## Если не задана, используется icon.
+@export var armor_overlay_texture: Texture2D
+
+## Суставные текстуры брони: каждая текстура привязана к конкретному
+## суставу. Оверлеи вешаются дитём на спрайт-сустав, поэтому двигаются
+## с анимацией автоматически. Пустое значение = нет оверлея для сустава.
+@export var armor_overlay_head: Texture2D
+@export var armor_overlay_torso: Texture2D
+@export var armor_overlay_back_upper_arm: Texture2D
+@export var armor_overlay_back_forearm: Texture2D
+@export var armor_overlay_back_hand: Texture2D
+@export var armor_overlay_front_upper_arm: Texture2D
+@export var armor_overlay_front_forearm: Texture2D
+@export var armor_overlay_front_hand: Texture2D
+@export var armor_overlay_back_thigh: Texture2D
+@export var armor_overlay_front_thigh: Texture2D
+@export var armor_overlay_back_shin: Texture2D
+@export var armor_overlay_front_shin: Texture2D
+@export var armor_overlay_back_foot: Texture2D
+@export var armor_overlay_front_foot: Texture2D
+
 ## Текстура, которую персонаж держит в руке при экипировке.
 ## Если не задана, используется icon из ItemData.
 @export var held_weapon_texture: Texture2D
+
+## Множитель размера held_weapon_texture в руке. Спрайт в сцене
+## откалиброван под кирку 100×100, поэтому крупные текстуры
+## (щит 173×190, дубина 355×68) нужно уменьшать: 0.25 = вчетверо.
+@export_range(0.05, 4.0, 0.05) var held_weapon_scale: float = 1.0
 
 ## Окно парирования в секундах от начала блока. Если входящая атака
 ## попадает в это окно — урон обнуляется, атакующий входит в стаггер.

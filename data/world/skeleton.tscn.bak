@@ -1,0 +1,212 @@
+[gd_scene format=3 uid="uid://c5vktnifvj872"]
+
+[ext_resource type="Script" uid="uid://bk0rcyiiwgbi6" path="res://scripts/skeleton.gd" id="1_skel"]
+[ext_resource type="Script" uid="uid://dr0qnjfstoy2" path="res://scripts/combat/hurtbox.gd" id="2_hurtbox"]
+[ext_resource type="Script" uid="uid://dmkj5sgatitkv" path="res://scripts/combat/hitbox.gd" id="3_hitbox"]
+[ext_resource type="Texture2D" uid="uid://cm1gi3ulfxu6c" path="res://assets/skeleton/sk_skull.svg" id="4_skull"]
+[ext_resource type="Texture2D" uid="uid://q4g8c7xjs2ic" path="res://assets/skeleton/sk_ribcage.svg" id="5_ribs"]
+[ext_resource type="Texture2D" uid="uid://be0lchygj78br" path="res://assets/skeleton/sk_pelvis.svg" id="6_pelvis"]
+[ext_resource type="Texture2D" uid="uid://7j5hjius2fon" path="res://assets/skeleton/sk_upper_arm.svg" id="7_uarm"]
+[ext_resource type="Texture2D" uid="uid://cfshwueslsd8m" path="res://assets/skeleton/sk_forearm.svg" id="8_farm"]
+[ext_resource type="Texture2D" uid="uid://4yeve8xruhp3" path="res://assets/skeleton/sk_hand.svg" id="9_hand"]
+[ext_resource type="Texture2D" uid="uid://et7b778degtd" path="res://assets/skeleton/sk_thigh.svg" id="10_thigh"]
+[ext_resource type="Texture2D" uid="uid://4y4cwjbisssl" path="res://assets/skeleton/sk_shin.svg" id="11_shin"]
+[ext_resource type="Texture2D" uid="uid://dxw4t1bws06jm" path="res://assets/skeleton/sk_foot.svg" id="12_foot"]
+[ext_resource type="Texture2D" uid="uid://cg1s480227dvg" path="res://assets/skeleton/sk_sword.svg" id="13_sword"]
+[ext_resource type="Texture2D" uid="uid://bwqre4uwah65a" path="res://assets/skeleton/sk_bow.svg" id="14_bow"]
+[ext_resource type="Texture2D" uid="uid://twsfuoi3pp1h" path="res://assets/skeleton/sk_bowstring.svg" id="15_string"]
+[ext_resource type="Texture2D" uid="uid://p4rfuhu2k6jn" path="res://assets/skeleton/sk_shield.svg" id="16_shield"]
+
+[sub_resource type="RectangleShape2D" id="shape"]
+size = Vector2(16, 58)
+
+[sub_resource type="RectangleShape2D" id="hurt_shape"]
+size = Vector2(18, 56)
+
+[sub_resource type="RectangleShape2D" id="hit_shape"]
+size = Vector2(2.1680918, 26)
+
+[node name="Skeleton" type="CharacterBody2D" unique_id=910646920]
+script = ExtResource("1_skel")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1941286024]
+position = Vector2(0, -29)
+shape = SubResource("shape")
+
+[node name="Hurtbox" type="Area2D" parent="." unique_id=12604740]
+collision_layer = 32
+collision_mask = 16
+monitoring = false
+script = ExtResource("2_hurtbox")
+
+[node name="HurtboxShape" type="CollisionShape2D" parent="Hurtbox" unique_id=1999111874]
+position = Vector2(0, -28)
+shape = SubResource("hurt_shape")
+
+[node name="Visuals" type="Node2D" parent="." unique_id=2002202637]
+
+[node name="Rig" type="Node2D" parent="Visuals" unique_id=106339853]
+scale = Vector2(1.3, 1.3)
+
+[node name="ThighBack" type="Node2D" parent="Visuals/Rig" unique_id=1440831353]
+z_index = -2
+position = Vector2(-2, -19)
+
+[node name="ThighSprite" type="Sprite2D" parent="Visuals/Rig/ThighBack" unique_id=1023644042]
+modulate = Color(0.72, 0.7, 0.63, 1)
+position = Vector2(0, 4.5)
+texture = ExtResource("10_thigh")
+
+[node name="KneeBack" type="Node2D" parent="Visuals/Rig/ThighBack" unique_id=1939470447]
+position = Vector2(0, 9)
+
+[node name="ShinSprite" type="Sprite2D" parent="Visuals/Rig/ThighBack/KneeBack" unique_id=1798593674]
+modulate = Color(0.72, 0.7, 0.63, 1)
+position = Vector2(0, 4)
+texture = ExtResource("11_shin")
+
+[node name="AnkleBack" type="Node2D" parent="Visuals/Rig/ThighBack/KneeBack" unique_id=1250960686]
+position = Vector2(0, 8)
+
+[node name="FootSprite" type="Sprite2D" parent="Visuals/Rig/ThighBack/KneeBack/AnkleBack" unique_id=1895615150]
+modulate = Color(0.72, 0.7, 0.63, 1)
+position = Vector2(1.5, 0.8)
+texture = ExtResource("12_foot")
+
+[node name="ThighFront" type="Node2D" parent="Visuals/Rig" unique_id=1885015357]
+z_index = 2
+position = Vector2(2, -19)
+
+[node name="ThighSprite" type="Sprite2D" parent="Visuals/Rig/ThighFront" unique_id=1786314816]
+position = Vector2(0, 4.5)
+texture = ExtResource("10_thigh")
+
+[node name="KneeFront" type="Node2D" parent="Visuals/Rig/ThighFront" unique_id=2121117888]
+position = Vector2(0, 9)
+
+[node name="ShinSprite" type="Sprite2D" parent="Visuals/Rig/ThighFront/KneeFront" unique_id=981774391]
+position = Vector2(0, 4)
+texture = ExtResource("11_shin")
+
+[node name="AnkleFront" type="Node2D" parent="Visuals/Rig/ThighFront/KneeFront" unique_id=112904291]
+position = Vector2(0, 8)
+
+[node name="FootSprite" type="Sprite2D" parent="Visuals/Rig/ThighFront/KneeFront/AnkleFront" unique_id=70604590]
+position = Vector2(1.5, 0.8)
+texture = ExtResource("12_foot")
+
+[node name="Hips" type="Node2D" parent="Visuals/Rig" unique_id=1984255183]
+position = Vector2(0, -19)
+
+[node name="PelvisSprite" type="Sprite2D" parent="Visuals/Rig/Hips" unique_id=1847781403]
+texture = ExtResource("6_pelvis")
+
+[node name="Spine" type="Node2D" parent="Visuals/Rig/Hips" unique_id=1985131336]
+position = Vector2(0, -3)
+
+[node name="RibcageSprite" type="Sprite2D" parent="Visuals/Rig/Hips/Spine" unique_id=869336340]
+position = Vector2(0, -6)
+texture = ExtResource("5_ribs")
+
+[node name="ShoulderBack" type="Node2D" parent="Visuals/Rig/Hips/Spine" unique_id=40566061]
+z_index = -1
+position = Vector2(-1.5, -11)
+
+[node name="UpperArmSprite" type="Sprite2D" parent="Visuals/Rig/Hips/Spine/ShoulderBack" unique_id=89084210]
+modulate = Color(0.72, 0.7, 0.63, 1)
+position = Vector2(0, 4.5)
+texture = ExtResource("7_uarm")
+
+[node name="ElbowBack" type="Node2D" parent="Visuals/Rig/Hips/Spine/ShoulderBack" unique_id=1636270670]
+position = Vector2(0, 8.5)
+
+[node name="ForearmSprite" type="Sprite2D" parent="Visuals/Rig/Hips/Spine/ShoulderBack/ElbowBack" unique_id=1089478267]
+modulate = Color(0.72, 0.7, 0.63, 1)
+position = Vector2(0, 3.5)
+texture = ExtResource("8_farm")
+
+[node name="WristBack" type="Node2D" parent="Visuals/Rig/Hips/Spine/ShoulderBack/ElbowBack" unique_id=1399372912]
+position = Vector2(0, 6.5)
+
+[node name="HandSprite" type="Sprite2D" parent="Visuals/Rig/Hips/Spine/ShoulderBack/ElbowBack/WristBack" unique_id=1633310299]
+modulate = Color(0.72, 0.7, 0.63, 1)
+texture = ExtResource("9_hand")
+
+[node name="ShieldSprite" type="Sprite2D" parent="Visuals/Rig/Hips/Spine/ShoulderBack/ElbowBack/WristBack" unique_id=1770960848]
+z_index = 1
+position = Vector2(3, 1)
+scale = Vector2(1.3, 1.3)
+texture = ExtResource("16_shield")
+
+[node name="ShoulderFront" type="Node2D" parent="Visuals/Rig/Hips/Spine" unique_id=1003425829]
+z_index = 3
+position = Vector2(1.5, -11)
+
+[node name="UpperArmSprite" type="Sprite2D" parent="Visuals/Rig/Hips/Spine/ShoulderFront" unique_id=335883267]
+position = Vector2(0, 4.5)
+texture = ExtResource("7_uarm")
+
+[node name="ElbowFront" type="Node2D" parent="Visuals/Rig/Hips/Spine/ShoulderFront" unique_id=21836398]
+position = Vector2(0, 8.5)
+
+[node name="ForearmSprite" type="Sprite2D" parent="Visuals/Rig/Hips/Spine/ShoulderFront/ElbowFront" unique_id=1301978872]
+position = Vector2(0, 3.5)
+texture = ExtResource("8_farm")
+
+[node name="WristFront" type="Node2D" parent="Visuals/Rig/Hips/Spine/ShoulderFront/ElbowFront" unique_id=280520739]
+position = Vector2(0, 6.5)
+
+[node name="HandSprite" type="Sprite2D" parent="Visuals/Rig/Hips/Spine/ShoulderFront/ElbowFront/WristFront" unique_id=1574021351]
+texture = ExtResource("9_hand")
+
+[node name="Sword" type="Node2D" parent="Visuals/Rig/Hips/Spine/ShoulderFront/ElbowFront/WristFront" unique_id=634092633]
+z_index = -1
+position = Vector2(0, -2)
+scale = Vector2(1.35, 1.35)
+
+[node name="Blade" type="Sprite2D" parent="Visuals/Rig/Hips/Spine/ShoulderFront/ElbowFront/WristFront/Sword" unique_id=535918971]
+position = Vector2(0, -10.5)
+texture = ExtResource("13_sword")
+
+[node name="Hitbox" type="Area2D" parent="Visuals/Rig/Hips/Spine/ShoulderFront/ElbowFront/WristFront/Sword" unique_id=682420039]
+collision_layer = 16
+collision_mask = 32
+monitoring = false
+monitorable = false
+script = ExtResource("3_hitbox")
+
+[node name="HitboxShape" type="CollisionShape2D" parent="Visuals/Rig/Hips/Spine/ShoulderFront/ElbowFront/WristFront/Sword/Hitbox" unique_id=1566062526]
+position = Vector2(0.08404553, -11)
+shape = SubResource("hit_shape")
+
+[node name="Bow" type="Node2D" parent="Visuals/Rig/Hips/Spine/ShoulderFront/ElbowFront/WristFront" unique_id=380700812]
+visible = false
+position = Vector2(1.5, -1)
+scale = Vector2(1.3, 1.3)
+
+[node name="BowSprite" type="Sprite2D" parent="Visuals/Rig/Hips/Spine/ShoulderFront/ElbowFront/WristFront/Bow" unique_id=591967064]
+position = Vector2(0, -0.5)
+texture = ExtResource("14_bow")
+
+[node name="StringSprite" type="Sprite2D" parent="Visuals/Rig/Hips/Spine/ShoulderFront/ElbowFront/WristFront/Bow" unique_id=659289179]
+position = Vector2(-0.6, 0)
+texture = ExtResource("15_string")
+
+[node name="Neck" type="Node2D" parent="Visuals/Rig/Hips/Spine" unique_id=1069771617]
+z_index = 1
+position = Vector2(0, -12)
+
+[node name="HeadSprite" type="Sprite2D" parent="Visuals/Rig/Hips/Spine/Neck" unique_id=48508383]
+position = Vector2(0, -6.5)
+texture = ExtResource("4_skull")
+
+[node name="HealthLabel" type="Label" parent="." unique_id=1992358965]
+offset_left = -16.0
+offset_top = -81.0
+offset_right = 16.0
+offset_bottom = -69.0
+theme_override_font_sizes/font_size = 9
+text = "30"
+horizontal_alignment = 1
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=928106746]

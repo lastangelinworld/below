@@ -9,7 +9,7 @@ enum Type {
 	NONE = 0,
 	HEAD = 1,
 	CHEST = 2,
-	LEGS = 3,
+	BOOTS = 11,
 	RING_LEFT = 5,
 	RING_RIGHT = 6,
 	NECKLACE = 7,
@@ -21,10 +21,10 @@ enum Type {
 const ALL_SLOTS: Array[Type] = [
 	Type.HEAD,
 	Type.CHEST,
-	Type.LEGS,
-	Type.NECKLACE,
+	Type.BOOTS,
 	Type.RING_LEFT,
 	Type.RING_RIGHT,
+	Type.NECKLACE,
 	Type.MAINHAND,
 	Type.OFFHAND,
 ]
@@ -36,7 +36,7 @@ const RING_SLOTS: Array[Type] = [Type.RING_LEFT, Type.RING_RIGHT]
 ## Оружие, щит и украшения (кольца, ожерелье) ношу носят, но по плану
 ## Фазы 5 персонажа не грузят — иначе двуручная дубина сделала бы
 ## «тяжёлый класс» недоступным без брони вовсе.
-const ARMOR_SLOTS: Array[Type] = [Type.HEAD, Type.CHEST, Type.LEGS]
+const ARMOR_SLOTS: Array[Type] = [Type.HEAD, Type.CHEST, Type.BOOTS]
 
 
 static func get_display_name(slot: Type) -> String:
@@ -44,9 +44,9 @@ static func get_display_name(slot: Type) -> String:
 		Type.HEAD:
 			return "Голова"
 		Type.CHEST:
-			return "Торс"
-		Type.LEGS:
-			return "Ноги"
+			return "Грудь"
+		Type.BOOTS:
+			return "Сапоги"
 		Type.RING_LEFT:
 			return "Кольцо (левое)"
 		Type.RING_RIGHT:
@@ -73,7 +73,7 @@ static func sanitize(raw_value: int) -> Type:
 	match raw_value:
 		4, 8:
 			return Type.OFFHAND
-		Type.HEAD, Type.CHEST, Type.LEGS, Type.RING_LEFT, Type.RING_RIGHT, Type.NECKLACE, Type.MAINHAND, Type.OFFHAND:
+		Type.HEAD, Type.CHEST, Type.BOOTS, Type.RING_LEFT, Type.RING_RIGHT, Type.NECKLACE, Type.MAINHAND, Type.OFFHAND:
 			return raw_value as Type
 		_:
 			return Type.NONE

@@ -7,8 +7,8 @@ script = ExtResource("1_recipe")
 recipe_id = &"cloth_hat"
 pattern = Array[StringName]([
 	&"fiber", &"fiber", &"fiber",
-	&"", &"", &"",
-	&"fiber", &"", &"fiber"
+	&"fiber", &"", &"fiber",
+	&"", &"", &""
 ])
 output_item_id = &"cloth_hat"
 output_amount = 1

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="282" height="415" viewBox="0 0 282 415">
+  <!-- Тканевый нагрудник: переднее плечо. Подгоняется под bbox (84,72)-(212,250).
+       Замените содержимое своей текстурой, сохранив размер 282x415. -->
+  <g>
+    <ellipse cx="148" cy="161" rx="60" ry="86" fill="#9c8a68"/>
+    <ellipse cx="148" cy="161" rx="48" ry="74" fill="#84734f"/>
+    <path d="M120 110 Q148 100 176 110" stroke="#6f5f46" stroke-width="5" fill="none"/>
+    <path d="M118 161 Q148 151 178 161" stroke="#6f5f46" stroke-width="5" fill="none"/>
+    <path d="M120 212 Q148 202 176 212" stroke="#6f5f46" stroke-width="5" fill="none"/>
+  </g>
+</svg>

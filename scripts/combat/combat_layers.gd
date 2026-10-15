@@ -11,14 +11,15 @@ extends Object
 ##   4  — снаряды (стрелы);
 ##   8  — тела скелетов;
 ##   16 — активная область удара (Hitbox);
-##   32 — получающая область (Hurtbox).
-
+##   32 — получающая область (Hurtbox);
+##   64 — физическая защита щита (ShieldBlock).
 const TERRAIN: int = 1
 const PLAYER: int = 2
 const ARROW: int = 4
 const SKELETON: int = 8
 const HITBOX: int = 16
 const HURTBOX: int = 32
+const SHIELDBLOCK: int = 64
 
 
 ## Ищет тайлмап-слой мира по имени «Terrain» на текущей сцене.
