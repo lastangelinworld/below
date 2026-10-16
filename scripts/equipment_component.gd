@@ -103,6 +103,13 @@ var max_health_bonus: int = 0
 @export_range(-3.14, 3.14, 0.01) var shoulder_arm_elbow_rotation: float = 0.0
 @export_range(-3.14, 3.14, 0.01) var shoulder_arm_wrist_rotation: float = 0.0
 
+## Углы передней руки в позе переноски: двуручное оружие держат
+## обеими руками, поэтому передняя ладонь тоже ложится на древко.
+## Нули означают «переднюю руку не трогаем» — одноручным предметам
+## эти поля не нужны.
+@export_range(-3.14, 3.14, 0.01) var shoulder_front_arm_shoulder_rotation: float = 0.0
+@export_range(-3.14, 3.14, 0.01) var shoulder_front_arm_elbow_rotation: float = 0.0
+
 ## Доводка вида оружия в руке на время замаха: множитель размера и
 ## сдвиг (пиксели) относительно обычного хвата. 1.0 / ZERO = без
 ## изменений. Двуручное оружие в замахе держат ближе к центру

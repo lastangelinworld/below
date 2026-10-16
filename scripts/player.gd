@@ -461,6 +461,14 @@ var _carry_pose_active: bool = false
 	"Visuals/BodyBreath/BackShoulder/BackElbow/BackWrist"
 ) as Node2D
 
+## Те же ссылки для передней руки: двуручный хват держит её на древке.
+@onready var _front_arm_shoulder: Node2D = get_node_or_null(
+	"Visuals/BodyBreath/FrontArmAim/FrontArmAttack"
+) as Node2D
+@onready var _front_arm_elbow: Node2D = get_node_or_null(
+	"Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow"
+) as Node2D
+
 ## Словарь оверлеев брони: ключ = item_id предмета,
 ## значение = массив Sprite2D (один на каждый сустав).
 ## Оверлеи создаются динамически при надевании и уничтожаются при снятии,
@@ -1154,6 +1162,38 @@ func _set_locomotion_arm_tracks_enabled(should_enable: bool) -> void:
 			animation.track_set_enabled(track_index, should_enable)
 
 
+## true, если предмет описывает хват двумя руками: у него заданы
+## углы передней руки для позы переноски.
+func _carry_uses_front_arm(component: EquipmentComponent) -> bool:
+	if component == null:
+		return false
+	return not (
+		is_zero_approx(component.shoulder_front_arm_shoulder_rotation)
+		and is_zero_approx(component.shoulder_front_arm_elbow_rotation)
+	)
+
+
+## То же, что и для задней руки, но для передней: поза двуручного
+## хвата владеет и ею, иначе шаг и дыхание стирают угол каждый кадр.
+func _set_front_arm_tracks_enabled(should_enable: bool) -> void:
+	for player: AnimationPlayer in [
+		locomotion_player,
+		attack_player,
+		secondary_motion_player,
+	]:
+		if player == null:
+			continue
+		for animation_name: StringName in player.get_animation_list():
+			var animation: Animation = player.get_animation(animation_name)
+			if animation == null:
+				continue
+			for track_index: int in animation.get_track_count():
+				var path_text: String = String(animation.track_get_path(track_index))
+				if not path_text.contains("FrontArmAttack"):
+					continue
+				animation.track_set_enabled(track_index, should_enable)
+
+
 ## Отключает/включает треки задней руки во ВСЕХ AnimationPlayer игрока.
 ## Поза «на плече» владеет рукой целиком: LocomotionPlayer (шаг),
 ## AttackPlayer (RESET) и SecondaryMotionPlayer (дыхание) тикают после
@@ -1510,6 +1550,9 @@ func _update_cursor_body_lean(delta: float) -> void:
 func _update_arm_aim() -> void:
 	if pickaxe_swinging:
 		return
+	# Поза двуручного хвата владеет передней рукой целиком.
+	if _carry_pose_active and _carry_uses_front_arm(_mainhand_component()):
+		return
 	# В блоке рука не следит за мышью: щит держится перед собой,
 	# направление корпусу и голове задаёт _update_facing.
 	if is_blocking:
@@ -1666,6 +1709,10 @@ func _start_next_combo_attack() -> void:
 
 	_update_facing()
 	_update_arm_aim()
+	# Двуручный хват посчитан от нулевого положения прицельного узла:
+	# с поворотом «на курсор» передняя ладонь ушла бы с древка.
+	if _is_dual_hand_equipped() and front_arm_aim != null:
+		front_arm_aim.rotation = 0.0
 	pickaxe_swinging = true
 	attack_serial += 1
 	mining_cooldown.start(mining_interval)
@@ -2594,9 +2641,12 @@ func _update_shoulder_sprite() -> void:
 	if resting and not _carry_pose_active:
 		_carry_pose_active = true
 		_set_back_arm_tracks_enabled(false)
+		if _carry_uses_front_arm(component):
+			_set_front_arm_tracks_enabled(false)
 	elif not resting and _carry_pose_active:
 		_carry_pose_active = false
 		_set_back_arm_tracks_enabled(true)
+		_set_front_arm_tracks_enabled(true)
 		if (
 			not is_blocking
 			and not pickaxe_swinging
@@ -2615,6 +2665,14 @@ func _update_shoulder_sprite() -> void:
 	_shoulder_sprite.position = component.shoulder_offset
 	_shoulder_sprite.rotation = component.shoulder_rotation
 	_shoulder_sprite.visible = resting
+	# Двуручное оружие держат перед собой, а задняя рука лежит в самом
+	# хвосте очереди отрисовки — древко пропадало бы за телом.
+	if _carry_uses_front_arm(component):
+		_shoulder_sprite.z_as_relative = false
+		_shoulder_sprite.z_index = 1
+	else:
+		_shoulder_sprite.z_as_relative = true
+		_shoulder_sprite.z_index = -3
 
 	# Поза держится каждый кадр: AnimationPlayer обновляется после
 	# _process, поэтому однократной записи не хватает — плечо и локоть
@@ -2627,6 +2685,15 @@ func _update_shoulder_sprite() -> void:
 			_back_arm_elbow.rotation = component.shoulder_arm_elbow_rotation
 		if _back_arm_wrist != null:
 			_back_arm_wrist.rotation = component.shoulder_arm_wrist_rotation
+		# Вторая рука на древке: прицельный узел обнуляем, иначе
+		# передняя ладонь уезжает за курсором и хват распадается.
+		if _carry_uses_front_arm(component):
+			if front_arm_aim != null:
+				front_arm_aim.rotation = 0.0
+			if _front_arm_shoulder != null:
+				_front_arm_shoulder.rotation = component.shoulder_front_arm_shoulder_rotation
+			if _front_arm_elbow != null:
+				_front_arm_elbow.rotation = component.shoulder_front_arm_elbow_rotation
 
 	# В позе переноски второй спрайт того же предмета в руке не нужен.
 	if held_weapon_sprite != null:
@@ -2750,6 +2817,7 @@ func _update_held_weapon_visuals() -> void:
 				held_weapon_base_scale * dual_hand_scale
 				* _held_scale_for(main_stack.item_id)
 			)
+			_apply_weapon_draw_layer()
 
 	# Щит появляется только вместе с экипированным предметом:
 	# в самой сцене на спрайте лежит превью-текстура, поэтому без
@@ -2764,6 +2832,35 @@ func _update_held_weapon_visuals() -> void:
 				shield_sprite.texture = texture
 			shield_sprite.scale = shield_base_scale * _held_scale_for(off_stack.item_id)
 			shield_sprite.visible = true
+
+
+## Двуручное оружие держат двумя руками перед собой, а задняя рука
+## лежит в самом хвосте очереди отрисовки (за торсом) — древко
+## пропадало за телом. Поэтому дубине задаётся абсолютный слой:
+## перед торсом, но под передней рукой, чтобы ладонь легла на древко.
+func _apply_weapon_draw_layer() -> void:
+	var two_handed: bool = _is_dual_hand_equipped()
+	if held_weapon_sprite != null:
+		if two_handed:
+			# Слой древка по ходу замаха переключает сама анимация:
+			# 1 — перед торсом, -1 — за телом, когда оружие заведено
+			# назад. Здесь задаётся значение по умолчанию.
+			held_weapon_sprite.z_as_relative = false
+			held_weapon_sprite.z_index = 1
+		else:
+			held_weapon_sprite.z_as_relative = true
+			held_weapon_sprite.z_index = -1
+	# Дальняя рука рисуется за торсом, поэтому её кулак на древке
+	# был не виден и казалось, что оружие держат одной рукой.
+	# На двуручном хвате поднимаем всю руку перед торсом, но под
+	# ближнюю руку: тогда видно оба кулака на рукояти.
+	if _back_arm_shoulder != null:
+		if two_handed:
+			_back_arm_shoulder.z_as_relative = false
+			_back_arm_shoulder.z_index = 2
+		else:
+			_back_arm_shoulder.z_as_relative = true
+			_back_arm_shoulder.z_index = -3
 
 
 ## Имена спрайтов частей тела и их абсолютные пути в риге игрока.
