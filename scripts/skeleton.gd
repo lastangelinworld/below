@@ -77,9 +77,9 @@ signal died
 @export var arrow_scene: PackedScene
 
 const GRAVITY: float = 900.0
-const MELEE_RANGE: float = 34.0
+const MELEE_RANGE: float = 50.0
 const MELEE_COOLDOWN: float = 1.1
-const ARCHER_RANGE: float = 170.0
+const ARCHER_RANGE: float = 200.0
 const ARCHER_KEEP_DISTANCE: float = 90.0
 const ARCHER_COOLDOWN: float = 2.2
 

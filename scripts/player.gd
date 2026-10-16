@@ -440,6 +440,27 @@ var vertical_attack_ratio: float = 0.75
         "Visuals/BodyBreath/FrontArmAim/FrontArmAttack/FrontElbow/FrontWrist/ShieldSocket/ShieldSprite"
 ) as Sprite2D
 
+## Плечевой спрайт двуручного оружия: висит на спине/плече, когда оружие
+## не используется (не атака, не блок). Создаётся динамически.
+var _shoulder_sprite: Sprite2D = null
+
+## true, когда поза «на плече» активна: треки рук в анимациях шага
+## отключены, суставы задней руки зафиксированы углами предмета.
+var _carry_pose_active: bool = false
+
+## Ссылки на суставы задней руки: повороты этих узлов фиксируются
+## при входе в позу «на плече», а затем не меняются (анимация шага
+## для них отключена).
+@onready var _back_arm_shoulder: Node2D = get_node_or_null(
+	"Visuals/BodyBreath/BackShoulder"
+) as Node2D
+@onready var _back_arm_elbow: Node2D = get_node_or_null(
+	"Visuals/BodyBreath/BackShoulder/BackElbow"
+) as Node2D
+@onready var _back_arm_wrist: Node2D = get_node_or_null(
+	"Visuals/BodyBreath/BackShoulder/BackElbow/BackWrist"
+) as Node2D
+
 ## Словарь оверлеев брони: ключ = item_id предмета,
 ## значение = массив Sprite2D (один на каждый сустав).
 ## Оверлеи создаются динамически при надевании и уничтожаются при снятии,
@@ -785,6 +806,7 @@ func _process(delta: float) -> void:
 	_update_cursor_body_lean(delta)
 	_update_arm_aim()
 	_update_held_attack()
+	_update_shoulder_sprite()
 
 
 func _validate_code_animations() -> void:
@@ -1084,6 +1106,8 @@ func _update_block_animation() -> void:
 	if is_blocking:
 		pickaxe_swinging = false
 		fist_attacking = false
+		# Замах прерван блоком: возвращаем обычный вид оружия в руке.
+		_reset_attack_weapon_visuals()
 		_set_locomotion_arm_tracks_enabled(false)
 		if _is_fist_block():
 			if attack_player.has_animation(&"fist_block"):
@@ -1094,8 +1118,10 @@ func _update_block_animation() -> void:
 				attack_player.stop()
 				attack_player.play(&"block")
 	else:
-		_set_locomotion_arm_tracks_enabled(true)
-		# Сняли блок: принудительно возвращаем руки в базовую позу.
+		# Поза «на плече» сама распоряжается треками рук: не включаем
+		# их обратно, пока двуручное оружие лежит на плече.
+		if not _carry_pose_active:
+			_set_locomotion_arm_tracks_enabled(true)
 		# Проверять current_animation нельзя — нециклическая block
 		# уже могла завершиться, и её имя потерялось после stop().
 		# Если сейчас идёт замах атаки — руки уже заняты ударом,
@@ -1128,6 +1154,30 @@ func _set_locomotion_arm_tracks_enabled(should_enable: bool) -> void:
 			animation.track_set_enabled(track_index, should_enable)
 
 
+## Отключает/включает треки задней руки во ВСЕХ AnimationPlayer игрока.
+## Поза «на плече» владеет рукой целиком: LocomotionPlayer (шаг),
+## AttackPlayer (RESET) и SecondaryMotionPlayer (дыхание) тикают после
+## _process() и каждый кадр стёрли бы выставленные углы плеча и локтя.
+## Ключ "BackShoulder" покрывает всю цепочку: локоть и кисть — потомки плеча.
+func _set_back_arm_tracks_enabled(should_enable: bool) -> void:
+	for player: AnimationPlayer in [
+		locomotion_player,
+		attack_player,
+		secondary_motion_player,
+	]:
+		if player == null:
+			continue
+		for animation_name: StringName in player.get_animation_list():
+			var animation: Animation = player.get_animation(animation_name)
+			if animation == null:
+				continue
+			for track_index: int in animation.get_track_count():
+				var path_text: String = String(animation.track_get_path(track_index))
+				if not path_text.contains("BackShoulder"):
+					continue
+				animation.track_set_enabled(track_index, should_enable)
+
+
 func _is_dual_hand_equipped() -> bool:
 	if equipment == null:
 		return false
@@ -1157,6 +1207,9 @@ func _update_inventory_animation() -> void:
 	inventory_loop_playing = open_now
 	if inventory_loop_playing:
 		pickaxe_swinging = false
+		# Инвентарь прервал замах: ordinary-вид оружия возвращаем сразу,
+		# иначе inventory_loop игрался с увеличенным «ударным» рисунком.
+		_reset_attack_weapon_visuals()
 		if attack_player.has_animation(&"inventory_loop"):
 			attack_player.stop()
 			attack_player.play(&"inventory_loop")
@@ -1457,6 +1510,10 @@ func _update_cursor_body_lean(delta: float) -> void:
 func _update_arm_aim() -> void:
 	if pickaxe_swinging:
 		return
+	# В блоке рука не следит за мышью: щит держится перед собой,
+	# направление корпусу и голове задаёт _update_facing.
+	if is_blocking:
+		return
 
 	var aim_parent: Node2D = front_arm_aim.get_parent() as Node2D
 	if aim_parent == null:
@@ -1618,6 +1675,9 @@ func _start_next_combo_attack() -> void:
 	_set_locomotion_arm_tracks_enabled(false)
 	attack_player.stop()
 	attack_player.play(animation_name)
+	# Вид оружия в замахе задаётся предметом: у двуручной дубины
+	# крупный рисунок сдвигают ближе к кулаку, иначе головка улетает.
+	_apply_attack_weapon_visuals()
 	_schedule_attack_hit(combo_step, attack_serial)
 
 
@@ -1913,10 +1973,12 @@ func _on_attack_animation_finished(animation_name: StringName) -> void:
 func _finish_pickaxe_swing() -> void:
 	pickaxe_swinging = false
 	fist_attacking = false
-	# Руки свободны: возвращаем локомоционное раскачивание. Если при этом
-	# удерживается щит, треки остаются выключенными — позу блока ведёт
-	# AttackPlayer, а локомоция не должна ей мешать.
-	if not is_blocking and not inventory_loop_playing:
+	# Замах кончился: оружие снова висит в обычном хвате.
+	_reset_attack_weapon_visuals()
+	# Руки свободны: возвращаем локационное раскрывание. Если при этом
+	# упёрживается щит, треки остаются выключенными — позе блока они
+	# мешают. Поза «на плече» тоже владеет треками — не вмешиваемся.
+	if not is_blocking and not inventory_loop_playing and not _carry_pose_active:
 		_set_locomotion_arm_tracks_enabled(true)
 	_update_facing()
 	_update_arm_aim()
@@ -2216,6 +2278,8 @@ func revive() -> void:
 	velocity = Vector2.ZERO
 	pickaxe_swinging = false
 	combo_step = 0
+	# Смерть могла прервать замах: возвращаем оружию обычный размер.
+	_reset_attack_weapon_visuals()
 	# Смерть могла застать в блоке: возвращаем стойку и треки рук.
 	is_blocking = false
 	_set_locomotion_arm_tracks_enabled(true)
@@ -2241,6 +2305,8 @@ func _die() -> void:
 
 	is_dead = true
 	pickaxe_swinging = false
+	# Смерть прерывает замах: обычный вид оружия нужен и падающему телу.
+	_reset_attack_weapon_visuals()
 	_player_state.force_change(PlayerStateMachine.State.DEAD)
 	combo_step = 0
 	velocity = Vector2.ZERO
@@ -2469,18 +2535,102 @@ func _below_try_damage_chest() -> bool:
 var default_held_weapon_texture: Texture2D = null
 var default_shield_texture: Texture2D = null
 var held_weapon_base_scale: Vector2 = Vector2.ONE
+var held_weapon_base_position: Vector2 = Vector2.ZERO
 var shield_base_scale: Vector2 = Vector2.ONE
 
 
-## Запоминает «родной» вид спрайтов из сцены, чтобы корректно
-## восстанавливать его после снятия экипировки.
 func _cache_default_held_visuals() -> void:
 	if held_weapon_sprite != null:
 		default_held_weapon_texture = held_weapon_sprite.texture
 		held_weapon_base_scale = held_weapon_sprite.scale
+		held_weapon_base_position = held_weapon_sprite.position
 	if shield_sprite != null:
 		default_shield_texture = shield_sprite.texture
 		shield_base_scale = shield_sprite.scale
+
+
+## Поза «на плече» для двуручного оружия: рукоять в кисти, ствол лежит
+## на плече. Спрайт вешается ребёнком на HandSocket (кисть задней руки),
+## поэтому хват держится автоматически: кисть анимируется, оружие — вместе
+## с ней. Угол shoulder_rotation подбирается под предмет так, чтобы дальний
+## конец доставал до плеча. Для одноручного оружия поля не заполнены —
+## поза не включается, хват остаётся обычный.
+## Показывается в покое и прячется во время замаха, удара руками и блока —
+## тогда то же оружие видно в руке (обычный held_weapon_sprite).
+## Вызывается каждый кадр из _process(): проверка дешёвая, зато поза
+## переключается мгновенно при любой смене боевого состояния.
+func _update_shoulder_sprite() -> void:
+	var component: EquipmentComponent = _mainhand_component()
+	var carried: bool = component != null and component.shoulder_texture != null
+	var resting: bool = (
+		carried
+		and not is_dead
+		and not pickaxe_swinging
+		and not fist_attacking
+		and not is_blocking
+		and not inventory_loop_playing
+		and not poise.is_staggered()
+		and _player_state.current != PlayerStateMachine.State.DODGE
+	)
+
+	if _shoulder_sprite != null and not is_instance_valid(_shoulder_sprite):
+		_shoulder_sprite = null
+
+	if carried and _shoulder_sprite == null:
+		var hand: Node2D = get_node_or_null(
+			"Visuals/BodyBreath/BackShoulder/BackElbow/BackWrist/HandSocket"
+		) as Node2D
+		if hand != null:
+			_shoulder_sprite = Sprite2D.new()
+			_shoulder_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			# Поза сзади торса: ствол «лежит» за спиной, кисть поверх него.
+			_shoulder_sprite.z_index = -3
+			hand.add_child(_shoulder_sprite)
+
+	# Смена позы: при входе отключаем треки задней руки во всех
+	# плеерах, при выходе возвращаем всегда — блок, замах и окно
+	# инвентаря анимируют заднюю руку своими клипами, и их треки
+	# должны быть живы.
+	if resting and not _carry_pose_active:
+		_carry_pose_active = true
+		_set_back_arm_tracks_enabled(false)
+	elif not resting and _carry_pose_active:
+		_carry_pose_active = false
+		_set_back_arm_tracks_enabled(true)
+		if (
+			not is_blocking
+			and not pickaxe_swinging
+			and not fist_attacking
+			and not inventory_loop_playing
+		):
+			_set_locomotion_arm_tracks_enabled(true)
+
+	if not carried:
+		if _shoulder_sprite != null:
+			_shoulder_sprite.visible = false
+		return
+
+	_shoulder_sprite.texture = component.shoulder_texture
+	_shoulder_sprite.scale = Vector2.ONE * component.shoulder_scale
+	_shoulder_sprite.position = component.shoulder_offset
+	_shoulder_sprite.rotation = component.shoulder_rotation
+	_shoulder_sprite.visible = resting
+
+	# Поза держится каждый кадр: AnimationPlayer обновляется после
+	# _process, поэтому однократной записи не хватает — плечо и локоть
+	# тут же возвращались к значениям анимации шага. Постоянная запись
+	# перекрывает их, а углы берутся из предмета, меняющего хват.
+	if resting:
+		if _back_arm_shoulder != null:
+			_back_arm_shoulder.rotation = component.shoulder_arm_shoulder_rotation
+		if _back_arm_elbow != null:
+			_back_arm_elbow.rotation = component.shoulder_arm_elbow_rotation
+		if _back_arm_wrist != null:
+			_back_arm_wrist.rotation = component.shoulder_arm_wrist_rotation
+
+	# В позе переноски второй спрайт того же предмета в руке не нужен.
+	if held_weapon_sprite != null:
+		held_weapon_sprite.visible = not resting
 
 
 ## Возвращает текстуру, которую предмет показывает в руке.
@@ -2504,6 +2654,48 @@ func _held_scale_for(item_id: StringName) -> float:
 	if item is EquipmentComponent:
 		return (item as EquipmentComponent).held_weapon_scale
 	return 1.0
+
+
+## Применяет к оружию в руке параметры атаки из ресурса: масштаб и
+## смещение. Вызывается при начале замаха и сбрасывается при его
+## завершении — оружие возвращается к обычному виду.
+func _apply_attack_weapon_visuals() -> void:
+	if held_weapon_sprite == null or equipment == null:
+		return
+	var main_stack: ItemStack = equipment.get_equipped_stack(EquipmentSlot.Type.MAINHAND)
+	if main_stack == null or main_stack.is_empty():
+		return
+	var item: ItemData = ItemRegistry.get_item(main_stack.item_id)
+	if not (item is EquipmentComponent):
+		return
+	var component: EquipmentComponent = item as EquipmentComponent
+	if is_equal_approx(component.attack_weapon_scale, 1.0) \
+			and component.attack_weapon_offset == Vector2.ZERO:
+		return
+	var base_scale: float = _held_scale_for(main_stack.item_id)
+	var dual_scale: float = 1.35 if _is_dual_hand_equipped() else 1.0
+	held_weapon_sprite.scale = (
+		held_weapon_base_scale * dual_scale * base_scale
+		* component.attack_weapon_scale
+	)
+	held_weapon_sprite.position = (
+		held_weapon_base_position + component.attack_weapon_offset
+	)
+
+
+## Возвращает оружие в руке к обычному виду после завершённого замаха.
+func _reset_attack_weapon_visuals() -> void:
+	if held_weapon_sprite == null or equipment == null:
+		return
+	var main_stack: ItemStack = equipment.get_equipped_stack(EquipmentSlot.Type.MAINHAND)
+	if main_stack == null or main_stack.is_empty():
+		return
+	var dual_scale: float = 1.35 if _is_dual_hand_equipped() else 1.0
+	held_weapon_sprite.scale = (
+		held_weapon_base_scale * dual_scale
+		* _held_scale_for(main_stack.item_id)
+	)
+	held_weapon_sprite.position = held_weapon_base_position
 
 
 ## Сигнал от EquipmentSystem: экипировка изменилась, обновляем руки.
@@ -2540,6 +2732,7 @@ func _update_held_weapon_visuals() -> void:
 		return
 
 	if held_weapon_sprite != null:
+		held_weapon_sprite.visible = true
 		var main_stack: ItemStack = equipment.get_equipped_stack(EquipmentSlot.Type.MAINHAND)
 		if main_stack == null or main_stack.is_empty():
 			held_weapon_sprite.texture = default_held_weapon_texture

@@ -13,6 +13,10 @@ const BACKSTAB_MULTIPLIER: float = 2.5
 ## Во сколько раз больнее удар по цели в стаггере (казнь).
 const EXECUTION_MULTIPLIER: float = 1.5
 
+## Мёртвая зона по X: если атака идёт почти в упор (разница < 15 px),
+## это не спина, а фронтальный удар — даже если хитбокс чуть смещён.
+const BACKSTAB_DEAD_ZONE_X: float = 15.0
+
 
 ## true, если вектор от атакующего к цели совпадает с направлением
 ## взгляда цели: атакующий находится за спиной цели.
@@ -33,6 +37,11 @@ static func is_backstab(attack_from: Vector2, target: Node) -> bool:
 
 	var to_target_x: float = target.global_position.x - attack_from.x
 	if is_zero_approx(to_target_x):
+		return false
+
+	# Мёртвая зона по X: если атака идёт почти в упор (разница < 15 px),
+	# это не спина, а фронтальный удар — даже если хитбокс чуть смещён.
+	if absf(to_target_x) < BACKSTAB_DEAD_ZONE_X:
 		return false
 
 	return signf(to_target_x) == float(dir)
